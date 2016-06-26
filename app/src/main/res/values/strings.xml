@@ -11,9 +11,14 @@
     <string name="error_invalid_password">This password is too short</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
-    <string name="permission_rationale">"Contacts permissions are needed for providing email
+    <string name="permission_rationale_contact">"Contacts permissions are needed for providing email
+        completions."
+    </string>
+    <string name="permission_rationale_cam">"External Storage permissions are needed for taking picture
         completions."
     </string>
     <string name="hint_write_content">Write your activity</string>
     <string name="album_name">JoinMe</string>
+    <string name="login_progress_message">Signing in...</string>
+    <string name="action_logout">Logout</string>
 </resources>
