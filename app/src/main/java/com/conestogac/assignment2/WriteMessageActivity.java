@@ -61,7 +61,6 @@ public class WriteMessageActivity extends AppCompatActivity {
             setContentView(R.layout.activity_write_message);
             image = (ImageView) findViewById(R.id.ivPhoto);
             edText = (EditText) findViewById(R.id.edText);
-            btReset = (Button) findViewById(R.id.btReset);
             btSave = (Button) findViewById(R.id.btSave);
 
             //to prevent keyboard showup at first screen following are set at LinearLayout
@@ -98,13 +97,9 @@ public class WriteMessageActivity extends AppCompatActivity {
         if(requestCode == ACTION_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
             if(output.exists()){
                 setPic();
-
-                //to enable user can reset image.
-                btReset.setVisibility(View.VISIBLE);
             }
         }
     }
-
 
     /*
         Called when user click on imageview
@@ -118,6 +113,9 @@ public class WriteMessageActivity extends AppCompatActivity {
         dispatchTakePictureIntent();
     }
 
+    /*
+        Read from file, decode to bmp, and resize to fit into image view
+     */
     private boolean setPic() {
         int targetW = image.getMeasuredWidth();
         int targetH = image.getMeasuredHeight();
@@ -293,18 +291,6 @@ public class WriteMessageActivity extends AppCompatActivity {
             Log.d(TAG, "External storage is not mounted READ/WRITE.");
         }
         return storageDir;
-    }
-
-    /*
-        When user select reset button, replace image with default icon
-        and set output file pointer to null which is checked inside of takePhoto()
-        whether call camera or not
-     */
-
-    public void resetContent(View view) {
-        output = null;
-        image.setImageResource(R.drawable.ic_photo_camera_white_48dp);
-        edText.setText("");
     }
 
     /*
