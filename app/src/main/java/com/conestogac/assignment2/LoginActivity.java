@@ -55,6 +55,13 @@ import com.google.firebase.database.DatabaseReference;
  */
 public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
     private static final String TAG = LoginActivity.class.getSimpleName();
+
+    //To share login/sign up, send additional information from previous activity
+    public static final String PROFILE_MODE_EXTRA_NAME = "profile_mode";
+    public static final Integer MODE_SIGNIN = 1;
+    public static final Integer MODE_SIGNUP = 2;
+    private int profile_mode;
+
     /**
      * Id to identity READ_CONTACTS permission request.
      */
@@ -67,6 +74,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     // UI references.
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
+    private EditText mUsernameView;
+
     private View mProgressView;
     private View mLoginFormView;
 
@@ -74,6 +83,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        //get where it is for signup or signin
+        profile_mode = getIntent().getExtras().getInt(PROFILE_MODE_EXTRA_NAME);
 
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
@@ -93,20 +104,25 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 return false;
             }
         });
+        mUsernameView = (EditText) findViewById(R.id.username);
 
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        if (profile_mode == MODE_SIGNUP) {
+            setTitle(getString(R.string.action_sign_up));
+            mUsernameView.setVisibility(View.VISIBLE);
+        } else {
+            setTitle(getString(R.string.action_sign_in));
+        }
+
+        Button mSubmitButton = (Button) findViewById(R.id.submit_button);
+        mSubmitButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptLogin(mEmailView.getText().toString(), mPasswordView.getText().toString());
-            }
-        });
-
-        Button mEmailSignUpButton = (Button) findViewById(R.id.email_sign_up_button);
-        mEmailSignUpButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                attemptSignup(mEmailView.getText().toString(), mPasswordView.getText().toString());
+                if (profile_mode == MODE_SIGNUP) {
+                    attemptSignup(mEmailView.getText().toString(), mPasswordView.getText().toString(),
+                            mUsernameView.getText().toString());
+                } else {
+                    attemptLogin(mEmailView.getText().toString(), mPasswordView.getText().toString());
+                }
             }
         });
 
@@ -208,10 +224,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         // Reset errors.
         mEmailView.setError(null);
         mPasswordView.setError(null);
+        mUsernameView.setError(null);
 
         // Store values at the time of the login attempt.
         String email = mEmailView.getText().toString();
         String password = mPasswordView.getText().toString();
+        String username = mUsernameView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
@@ -231,6 +249,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         } else if (!isEmailValid(email)) {
             mEmailView.setError(getString(R.string.error_invalid_email));
             focusView = mEmailView;
+            cancel = true;
+        }
+
+        // Check username valid
+        if (profile_mode == MODE_SIGNUP && !isUserNameValid(username)) {
+            mUsernameView.setError(getString(R.string.error_field_required));
+            focusView = mUsernameView;
             cancel = true;
         }
 
@@ -290,7 +315,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * errors are presented and no actual signup attempt is made.
      */
 
-    private void attemptSignup(String email, String password) {
+    private void attemptSignup(String email, String password, String username) {
         Log.d(TAG, "signUp:" + email);
 
         if (!validateForm()) {
@@ -333,6 +358,11 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private boolean isPasswordValid(String password) {
         //TODO: Replace this with your own logic
         return password.length() > 3;
+    }
+
+    private boolean isUserNameValid(String username) {
+        //TODO: Replace this with your own logic
+        return username.length() > 0;
     }
 
     /**

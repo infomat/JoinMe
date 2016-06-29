@@ -15,5 +15,6 @@
         android:id="@+id/btWrite"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:src="@drawable/ic_edit_white_48dp" />
+        android:src="@drawable/ic_edit_white_48dp"
+        android:background="@color/colorAccent" />
 </RelativeLayout>

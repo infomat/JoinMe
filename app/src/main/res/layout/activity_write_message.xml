@@ -4,39 +4,38 @@
     android:layout_height="match_parent">
     <ScrollView
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-        <ImageView
+        android:layout_height="wrap_content">
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="400dp"
-            android:id="@+id/ivPhoto"
-            android:clickable="true"
-            android:scaleType="centerCrop"
-            android:onClick="takePhoto"
-            android:nestedScrollingEnabled="false"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:backgroundTint="@color/blue_grey_500"
-            android:background="@drawable/ic_camera_alt_24dp" />
-        <EditText
-            android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:id="@+id/edText"
-            android:autoText="true"
-            android:background="@color/accent_material_dark"
-            android:gravity="left|top"
-            android:maxLines="20"
-            android:hint="@string/hint_write_content"
-            android:paddingLeft="20dp"
-            android:paddingTop="5dp"
-            android:paddingRight="20dp"
-            android:paddingBottom="5dp"/>
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:id="@+id/ivPhoto"
+                android:clickable="true"
+                android:scaleType="centerCrop"
+                android:onClick="takePhoto"
+                android:nestedScrollingEnabled="false"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:backgroundTint="@color/blue_grey_500"
+                android:background="@drawable/ic_camera_alt_24dp" />
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:id="@+id/edText"
+                android:autoText="true"
+                android:background="@color/accent_material_dark"
+                android:gravity="left|top"
+                android:maxLines="20"
+                android:hint="@string/hint_write_content"
+                android:paddingLeft="20dp"
+                android:paddingTop="5dp"
+                android:paddingRight="20dp"
+                android:paddingBottom="5dp"/>
+        </LinearLayout>
     </ScrollView>
 
     <Button
@@ -46,7 +45,7 @@
         android:id="@+id/btSave"
         android:onClick="saveContent"
         android:background="@color/colorAccent"
-        android:textColor="@color/abc_secondary_text_material_dark"
+        android:textColor="@color/abc_primary_text_material_dark"
         android:layout_marginTop="20dp"
         android:layout_gravity="center_horizontal" />
 </LinearLayout>

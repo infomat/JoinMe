@@ -62,26 +62,31 @@
                     android:singleLine="true" />
 
             </android.support.design.widget.TextInputLayout>
-
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <EditText
+                    android:id="@+id/username"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/prompt_name"
+                    android:imeActionId="@+id/username"
+                    android:imeActionLabel="@string/action_sign_up"
+                    android:imeOptions="actionUnspecified"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:visibility="gone"/>
+            </android.support.design.widget.TextInputLayout>
             <Button
-                android:id="@+id/email_sign_in_button"
+                android:id="@+id/submit_button"
                 style="?android:textAppearanceSmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/action_sign_in"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/email_sign_up_button"
-                style="?android:textAppearanceSmall"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/action_sign_up"
-                android:textStyle="bold" />
-
-
+                android:text="@string/submit"
+                android:textStyle="bold"
+                android:background="@color/colorAccent"
+                android:textColor="@color/abc_primary_text_material_dark" />
 
         </LinearLayout>
     </ScrollView>

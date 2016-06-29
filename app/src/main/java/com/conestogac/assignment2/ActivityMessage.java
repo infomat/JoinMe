@@ -6,6 +6,9 @@ import android.location.Location;
  * Created by infomat on 16-06-21.
  */
 public class ActivityMessage {
+    public final int NONE = 0;
+    public final int LIKEIT = 1;
+    public final int HATEIT = 2;
 
     private String id;          //message ID
     private String photoUrl;    //photo

@@ -8,7 +8,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -51,15 +50,19 @@ public class MainActivity extends AppCompatActivity implements
         btWrite.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(MainActivity.this, WriteMessageActivity.class));
+                startActivity(new Intent(MainActivity.this, NewPostActivity.class));
             }
         });
     }
 
+    /*
+        In case of filure in connection
+     */
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d(TAG, "onConnectionFailed:" + connectionResult);
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

@@ -1,16 +1,24 @@
 <resources>
     <string name="app_name">JoinMe</string>
 
+    <!-- Common -->
+
+
+
     <!-- Strings related to login -->
+    <string name="welcome_screen_text">Join Me!</string>
     <string name="prompt_email">Email</string>
-    <string name="prompt_password">Password (optional)</string>
+    <string name="prompt_password">Password</string>
+    <string name="prompt_name">Fullname</string>
     <string name="action_sign_in">Sign in</string>
     <string name="action_sign_up">Sign up</string>
     <string name="action_sign_in_short">Sign in</string>
+    <string name="error_user_not_signed_in">It needs to be signed in</string>
     <string name="error_invalid_email">This email address is invalid</string>
     <string name="error_invalid_password">This password is too short</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
+    <string name="error_upload_task_create">During upload, there is an error</string>
     <string name="permission_rationale_contact">"Contacts permissions are needed for providing email
         completions."
     </string>
@@ -20,5 +28,9 @@
     <string name="hint_write_content">Write your activity</string>
     <string name="album_name">JoinMe</string>
     <string name="login_progress_message">Signing in...</string>
+    <string name="upload_progress_message">Uploading...</string>
     <string name="action_logout">Logout</string>
+    <string name="submit">Submit</string>
+
+
 </resources>

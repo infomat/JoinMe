@@ -1,23 +1,19 @@
 package com.conestogac.assignment2;
 
-import android.*;
-import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -28,15 +24,18 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
-public class WriteMessageActivity extends AppCompatActivity {
-    private static final String TAG = WriteMessageActivity.class.getSimpleName();
-    private static final String EXTRA_FILENAME = "com.conestogac.assignment2.EXTRA_FILENAME";
+public class NewPostActivity extends BaseActivity implements
+        NewPostUploadTaskFragment.TaskCallbacks {
     public  static String tmpFileName = "Activity";
+    public  static final String TAG_TASK_FRAGMENT = "newPostUploadTaskFragment";
+    private static final String TAG = NewPostActivity.class.getSimpleName();
+    private static final String EXTRA_FILENAME = "com.conestogac.assignment2.EXTRA_FILENAME";
 
+    private static final int THUMBNAIL_MAX_DIMENSION = 640;
+    private static final int FULL_SIZE_MAX_DIMENSION = 1280;
     private static final int REQUEST_EXTERNAL_STORAGE_CAM = 0;
     private static final int ACTION_TAKE_PHOTO = 1;
 
@@ -50,13 +49,28 @@ public class WriteMessageActivity extends AppCompatActivity {
     private File output = null;
     private ImageView image;
     private EditText edText;
-    private Button btReset;
     private Button btSave;
+
+    private Bitmap mResizedBitmap;
+    private Bitmap mThumbnail;
+    private NewPostUploadTaskFragment mTaskFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this.setTitle("Create Activity");
+
+        // find the retained fragment on activity restarts
+        FragmentManager fm = getSupportFragmentManager();
+        mTaskFragment = (NewPostUploadTaskFragment) fm.findFragmentByTag(TAG_TASK_FRAGMENT);
+
+        // create the fragment and data the first time
+        if (mTaskFragment == null) {
+            // add the fragment
+            mTaskFragment = new NewPostUploadTaskFragment();
+            fm.beginTransaction().add(mTaskFragment, TAG_TASK_FRAGMENT).commit();
+        }
+
         if (savedInstanceState == null) {
             setContentView(R.layout.activity_write_message);
             image = (ImageView) findViewById(R.id.ivPhoto);
@@ -120,12 +134,30 @@ public class WriteMessageActivity extends AppCompatActivity {
         int targetW = image.getMeasuredWidth();
         int targetH = image.getMeasuredHeight();
 
+        //get full size to fit into imageview
+        mResizedBitmap = decodeSampledBitmapFromFile(targetW, targetH);
+
+        // Get thumbnail
+        mThumbnail = decodeSampledBitmapFromFile(THUMBNAIL_MAX_DIMENSION, THUMBNAIL_MAX_DIMENSION);
+
+        // Set imageview with decoded bmp.
+        // center crop option is used not to hurt width/height ratio
+        image.setImageBitmap(mResizedBitmap);
+        return true;
+    }
+
+    /*
+        decode to target size and return bitmap pointer
+     */
+    private Bitmap decodeSampledBitmapFromFile(int targetW, int targetH) {
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
         bmOptions.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(output.getAbsolutePath(), bmOptions);
 
         //in case of clear without taking photo
-        if (bmOptions.outMimeType == null) return false;
+        if (bmOptions.outMimeType == null) {
+            return null;
+        }
 
         // Figure out which way needs to be reduced less
         int scaleFactor = calculateInSampleSize(bmOptions, targetW, targetH );
@@ -135,15 +167,9 @@ public class WriteMessageActivity extends AppCompatActivity {
         bmOptions.inJustDecodeBounds = false;
         bmOptions.inSampleSize = scaleFactor;
 
-		// Decode the JPEG file into a Bitmap
-        Bitmap myBitmap = BitmapFactory.decodeFile(output.getAbsolutePath(), bmOptions);
-
-        //To fit to the width of imageview, scale
-        Bitmap result = Bitmap.createScaledBitmap(myBitmap, targetW, targetH, false);
-        image.setImageBitmap(myBitmap);
-        return true;
+        // Decode the JPEG file into a Bitmap
+        return BitmapFactory.decodeFile(output.getAbsolutePath(), bmOptions);
     }
-
     /*
         Calculate Scale
         scale will be chosen to maintain full view of width.
@@ -244,7 +270,7 @@ public class WriteMessageActivity extends AppCompatActivity {
 
 
     /*
-        Create Temporary Image File before uploading
+        Create Image File before uploading
      */
     private File createImageFile() throws IOException {
         String imageFileName = JPEG_FILE_PREFIX + tmpFileName + JPEG_FILE_SUFFIX;
@@ -300,19 +326,48 @@ public class WriteMessageActivity extends AppCompatActivity {
     public void saveContent(View view) {
         //check activity is filled out
         if (TextUtils.isEmpty(edText.getText().toString())) {
-            Toast.makeText(WriteMessageActivity.this, "Explain your activity.",
+            Toast.makeText(NewPostActivity.this, "Explain your activity.",
                     Toast.LENGTH_SHORT).show();
             return;
         }
 
         //check activity photo is taken
         if (output == null) {
-            Toast.makeText(WriteMessageActivity.this, "Activity photo is needed.",
+            Toast.makeText(NewPostActivity.this, "Activity photo is required.",
                     Toast.LENGTH_SHORT).show();
             return;
         }
-        btReset.setEnabled(false);
+        //show uploading... dialog and disable button
+        showProgressDialog(getString(R.string.upload_progress_message));
         btSave.setEnabled(false);
 
+        //get system time
+        Long timestamp = System.currentTimeMillis();
+
+        //Set path of full image and thumbnail image
+        String bitmapPath = "/" + FirebaseUtil.getCurrentUserId() + "/full/" + timestamp.toString() + "/";
+        String thumbnailPath = "/" + FirebaseUtil.getCurrentUserId() + "/thumb/" + timestamp.toString() + "/";
+        mTaskFragment.uploadPost(mResizedBitmap, bitmapPath, mThumbnail, thumbnailPath,
+                Uri.fromFile(output).getLastPathSegment(), edText.getText().toString());
+    }
+
+    /*
+        After uploading, this method will be called
+     */
+    @Override
+    public void onPostUploaded(final String error) {
+        NewPostActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                btSave.setEnabled(true);
+                dismissProgressDialog();
+                if (error == null) {
+                    Toast.makeText(NewPostActivity.this, "Post created!", Toast.LENGTH_SHORT).show();
+                    finish();
+                } else {
+                    Toast.makeText(NewPostActivity.this, error, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 }
