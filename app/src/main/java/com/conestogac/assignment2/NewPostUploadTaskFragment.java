@@ -194,7 +194,7 @@ public class NewPostUploadTaskFragment extends Fragment {
                                     Map<String, Object> updatedUserData = new HashMap<>();
 
                                     //Add post_id to current user's folder
-                                    updatedUserData.put(FirebaseUtil.getPeoplePath() + author.getUid() + "/posts/"
+                                    updatedUserData.put(FirebaseUtil.getUsersPath() + author.getUid() + "/posts/"
                                             + newPostKey, true);
 
                                     //Add new post to post_id folder

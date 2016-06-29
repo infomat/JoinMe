@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements
             mAuth = FirebaseAuth.getInstance();
             mAuth.signOut();
             //to prevent using back key, remove all task from the stack
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             return true;

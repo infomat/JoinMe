@@ -1,15 +1,22 @@
 package com.conestogac.assignment2;
 
+import android.util.Log;
+
 import com.conestogac.assignment2.Model.Author;
+import com.firebase.client.FirebaseError;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 /**
- * Created by infomat on 16-06-26.
+ * Util class for Firebase which will return paths
  */
 public class FirebaseUtil {
+
     public static DatabaseReference getBaseRef() {
         return FirebaseDatabase.getInstance().getReference();
     }
@@ -23,15 +30,17 @@ public class FirebaseUtil {
     }
 
     public static Author getAuthor() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        final FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
         if (user == null) return null;
-        return new Author(user.getDisplayName(), user.getUid());
+
+        return new Author(user.getEmail(), user.getUid());
     }
 
     public static DatabaseReference getCurrentUserRef() {
         String uid = getCurrentUserId();
         if (uid != null) {
-            return getBaseRef().child("people").child(getCurrentUserId());
+            return getBaseRef().child("users").child(getCurrentUserId());
         }
         return null;
     }
@@ -44,20 +53,17 @@ public class FirebaseUtil {
         return "posts/";
     }
 
+    public static String getUsersPath() {
+        return "users/";
+    }
+
+    //If user select unscribe specific post, it will store this id
+    public static String getUnscribePath() {
+        return "unscribe/";
+    }
+
     public static DatabaseReference getUsersRef() {
         return getBaseRef().child("users");
-    }
-
-    public static String getPeoplePath() {
-        return "people/";
-    }
-
-    public static DatabaseReference getPeopleRef() {
-        return getBaseRef().child("people");
-    }
-
-    public static DatabaseReference getLikesRef() {
-        return getBaseRef().child("likes");
     }
 
 }
