@@ -6,12 +6,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
@@ -24,20 +24,26 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+
+import pub.devrel.easypermissions.AfterPermissionGranted;
+import pub.devrel.easypermissions.EasyPermissions;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class NewPostActivity extends BaseActivity implements
-        NewPostUploadTaskFragment.TaskCallbacks {
-    public  static String tmpFileName = "Activity";
+        NewPostUploadTaskFragment.TaskCallbacks,
+        EasyPermissions.PermissionCallbacks {
+    public  static final String tmpFileName = "Activity";
     public  static final String TAG_TASK_FRAGMENT = "newPostUploadTaskFragment";
+    public  static final String LOCATION_EXTRA_NAME = "current_location";
     private static final String TAG = NewPostActivity.class.getSimpleName();
     private static final String EXTRA_FILENAME = "com.conestogac.assignment2.EXTRA_FILENAME";
 
     private static final int THUMBNAIL_MAX_DIMENSION = 640;
     private static final int FULL_SIZE_MAX_DIMENSION = 1280;
-    private static final int REQUEST_EXTERNAL_STORAGE_CAM = 0;
-    private static final int ACTION_TAKE_PHOTO = 1;
+    private static final int REQUEST_EXTERNAL_STORAGE_CAM = 1;
+    private static final int ACTION_TAKE_PHOTO = 102;
 
     private static final String JPEG_FILE_PREFIX = "IMG_";
     private static final String JPEG_FILE_SUFFIX = ".jpg";
@@ -55,10 +61,20 @@ public class NewPostActivity extends BaseActivity implements
     private Bitmap mThumbnail;
     private NewPostUploadTaskFragment mTaskFragment;
 
+    private Location currentLocation;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this.setTitle("Create Activity");
+
+        //get current location
+        currentLocation = (Location) getIntent().getExtras().get(LOCATION_EXTRA_NAME);
+        Log.d(TAG, "Latitude: "+currentLocation.getLatitude()+", Logitude: "+currentLocation.getLongitude());
+        if (currentLocation == null) {
+            Toast.makeText(NewPostActivity.this, "Location information is not yet received from GPS",
+                    Toast.LENGTH_SHORT).show();
+        }
 
         // find the retained fragment on activity restarts
         FragmentManager fm = getSupportFragmentManager();
@@ -120,10 +136,6 @@ public class NewPostActivity extends BaseActivity implements
     */
     public void takePhoto(View view)
     {
-        if (!isStoragePermissionGranted()) {
-            return;
-        }
-
         dispatchTakePictureIntent();
     }
 
@@ -170,6 +182,7 @@ public class NewPostActivity extends BaseActivity implements
         // Decode the JPEG file into a Bitmap
         return BitmapFactory.decodeFile(output.getAbsolutePath(), bmOptions);
     }
+
     /*
         Calculate Scale
         scale will be chosen to maintain full view of width.
@@ -193,65 +206,22 @@ public class NewPostActivity extends BaseActivity implements
                 inSampleSize *= 2;
             }
         }
-
         return inSampleSize;
-    }
-
-    /*
-        get Storage permission
-        From SDK 23, For special permission, user can remove permission after installation
-        So it is needed to check permission at runtime
-     */
-    private  boolean isStoragePermissionGranted() {
-
-        if (Build.VERSION.SDK_INT >= 23) {
-            if (checkSelfPermission(WRITE_EXTERNAL_STORAGE)
-                    == PackageManager.PERMISSION_GRANTED) {
-                Log.v(TAG, "Permission is already granted");
-                return true;
-            } else {
-                //If permission is no granted, ask user to permit
-                Log.v(TAG, "Show Rationale");
-                if (shouldShowRequestPermissionRationale(WRITE_EXTERNAL_STORAGE)) {
-                    Log.i(TAG, "Displaying external storage permission rationale to provide additional context.");
-                    Snackbar.make(edText, R.string.permission_rationale_cam, Snackbar.LENGTH_INDEFINITE)
-                            .setAction(android.R.string.ok, new View.OnClickListener() {
-                                @Override
-                                @TargetApi(Build.VERSION_CODES.M)
-                                public void onClick(View v) {
-                                    requestPermissions(new String[]{WRITE_EXTERNAL_STORAGE}, REQUEST_EXTERNAL_STORAGE_CAM);
-                                }
-                            });
-                } else {
-                    Log.v(TAG, "Permission is revoked");
-                    requestPermissions(new String[] {WRITE_EXTERNAL_STORAGE} , REQUEST_EXTERNAL_STORAGE_CAM);
-                }
-            }
-        } else { //permission is automatically granted on sdk<23 upon installation
-            Log.v(TAG, "Permission is granted due to SDK");
-            return true;
-        }
-        return false;
-    }
-
-
-     /*
-        Callback received when a permissions request has been completed.
-      */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_EXTERNAL_STORAGE_CAM) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                dispatchTakePictureIntent();
-            }
-        }
     }
 
     /*
         Taking picture
     */
+    @AfterPermissionGranted(REQUEST_EXTERNAL_STORAGE_CAM)
     private void dispatchTakePictureIntent() {
+        // Check for camera permissions
+        if (!EasyPermissions.hasPermissions(this, WRITE_EXTERNAL_STORAGE)) {
+            EasyPermissions.requestPermissions(this,
+                    getString(R.string.permission_rationale_cam),
+                    REQUEST_EXTERNAL_STORAGE_CAM, WRITE_EXTERNAL_STORAGE);
+            return;
+        }
+
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         Log.i(TAG, "Now, REQUEST_EXTERNAL_STORAGE is granted ");
         try {
@@ -320,6 +290,7 @@ public class NewPostActivity extends BaseActivity implements
     }
 
     /*
+        Upload Button Click Listener
         When user select upload, it will upload to Firebase
         It will check whether text and image is not null
      */
@@ -348,7 +319,7 @@ public class NewPostActivity extends BaseActivity implements
         String bitmapPath = "/" + FirebaseUtil.getCurrentUserId() + "/full/" + timestamp.toString() + "/";
         String thumbnailPath = "/" + FirebaseUtil.getCurrentUserId() + "/thumb/" + timestamp.toString() + "/";
         mTaskFragment.uploadPost(mResizedBitmap, bitmapPath, mThumbnail, thumbnailPath,
-                Uri.fromFile(output).getLastPathSegment(), edText.getText().toString());
+                Uri.fromFile(output).getLastPathSegment(), edText.getText().toString(), currentLocation);
     }
 
     /*
@@ -369,5 +340,23 @@ public class NewPostActivity extends BaseActivity implements
                 }
             }
         });
+    }
+
+    /*
+       Callback received when a permissions request has been completed.
+    */
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, List<String> perms) {}
+
+    @Override
+    public void onPermissionsDenied(int requestCode, List<String> perms) {
     }
 }

@@ -1,5 +1,7 @@
 package com.conestogac.assignment2.Model;
 
+import android.location.*;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -13,13 +15,20 @@ public class Post {
     private String text;
     private Object timestamp;
     private String full_storage_uri;
+    private Loc location;
 
     public Post() {
         // empty default constructor, necessary for Firebase to be able to deserialize blog posts
     }
 
-    public Post(Author author, String full_url, String full_storage_uri, String thumb_url, String thumb_storage_uri, String text, Object timestamp) {
+    /*
+        This model will have picture, text, location inforamtion
+        Firebase will mapping variable name to key automatically
+        So, location model is defined and mapping android Location object into Loc Model object
+     */
+    public Post(Author author, Location location,String full_url, String full_storage_uri, String thumb_url, String thumb_storage_uri, String text, Object timestamp) {
         this.author = author;
+        this.location = new Loc(String.valueOf(location.getLongitude()), String.valueOf(location.getLatitude()));
         this.full_url = full_url;
         this.text = text;
         this.timestamp = timestamp;
@@ -31,6 +40,8 @@ public class Post {
     public Author getAuthor() {
         return author;
     }
+
+    public Loc getLocation() {return location; }
 
     public String getFull_url() {
         return full_url;

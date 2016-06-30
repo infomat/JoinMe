@@ -7,8 +7,8 @@ import android.location.Location;
  */
 public class ActivityMessage {
     public final int NONE = 0;
-    public final int LIKEIT = 1;
-    public final int HATEIT = 2;
+    public final int LIKED = 1;
+    public final int NOTLIKED = 2;
 
     private String id;          //message ID
     private String photoUrl;    //photo

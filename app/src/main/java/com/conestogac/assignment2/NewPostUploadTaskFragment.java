@@ -2,6 +2,7 @@ package com.conestogac.assignment2;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -84,10 +85,10 @@ public class NewPostUploadTaskFragment extends Fragment {
         It will call async task, UploadPostTask for uploading picture and set database
      */
     public void uploadPost(Bitmap bitmap, String inBitmapPath, Bitmap thumbnail,
-                           String inThumbnailPath, String inFileName, String inPostText) {
+                           String inThumbnailPath, String inFileName, String inPostText, Location currentLocation) {
 
         UploadPostTask uploadTask = new UploadPostTask(bitmap, inBitmapPath, thumbnail,
-                            inThumbnailPath, inFileName, inPostText);
+                            inThumbnailPath, inFileName, inPostText, currentLocation);
         uploadTask.execute();
     }
 
@@ -100,13 +101,15 @@ public class NewPostUploadTaskFragment extends Fragment {
         private WeakReference<Bitmap> thumbnailReference;
         private String postText;
         private String fileName;
+        private Location currentLocation;
 
         public UploadPostTask(Bitmap bitmap, String inBitmapPath, Bitmap thumbnail, String inThumbnailPath,
-                              String inFileName, String inPostText) {
+                              String inFileName, String inPostText, Location location) {
             bitmapReference = new WeakReference<Bitmap>(bitmap);
             thumbnailReference = new WeakReference<Bitmap>(thumbnail);
             postText = inPostText;
             fileName = inFileName;
+            currentLocation = location;
         }
 
         @Override
@@ -187,7 +190,7 @@ public class NewPostUploadTaskFragment extends Fragment {
                                     }
 
                                     //create post object to upload at databse
-                                    Post newPost = new Post(author, fullSizeUrl.toString(), fullSizeRef.toString(),
+                                    Post newPost = new Post(author, currentLocation , fullSizeUrl.toString(), fullSizeRef.toString(),
                                             thumbnailUrl.toString(), thumbnailRef.toString(), postText, ServerValue.TIMESTAMP);
 
                                     //create Map to upload data
