@@ -81,7 +81,7 @@ public class NewPostUploadTaskFragment extends Fragment {
     }
 
     /*
-        Called from MainActivity for uploading
+        Called from FeedsActivity for uploading
         It will call async task, UploadPostTask for uploading picture and set database
      */
     public void uploadPost(Bitmap bitmap, String inBitmapPath, Bitmap thumbnail,

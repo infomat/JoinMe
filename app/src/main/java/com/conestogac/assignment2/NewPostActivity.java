@@ -70,10 +70,8 @@ public class NewPostActivity extends BaseActivity implements
 
         //get current location
         currentLocation = (Location) getIntent().getExtras().get(LOCATION_EXTRA_NAME);
-        Log.d(TAG, "Latitude: "+currentLocation.getLatitude()+", Logitude: "+currentLocation.getLongitude());
-        if (currentLocation == null) {
-            Toast.makeText(NewPostActivity.this, "Location information is not yet received from GPS",
-                    Toast.LENGTH_SHORT).show();
+        if(currentLocation == null) {
+            Log.e(TAG, "Error!! NULL LOCATION");
         }
 
         // find the retained fragment on activity restarts
@@ -136,6 +134,12 @@ public class NewPostActivity extends BaseActivity implements
     */
     public void takePhoto(View view)
     {
+        if (currentLocation == null){
+            Toast.makeText(NewPostActivity.this, "Sorry! Location information is not available.\n" +
+                    "Please try later!",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
         dispatchTakePictureIntent();
     }
 

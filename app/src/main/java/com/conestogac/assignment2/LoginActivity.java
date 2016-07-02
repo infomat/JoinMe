@@ -5,7 +5,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -43,11 +42,9 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.api.model.StringList;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
@@ -70,7 +67,7 @@ public class LoginActivity extends AppCompatActivity implements
     public static final Integer MODE_SIGNUP = 2;
     private int profile_mode;
 
-    public static String fullName = " ";
+    public static String fullName;
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -181,9 +178,10 @@ public class LoginActivity extends AppCompatActivity implements
                                 fullName = (String) dataSnapshot.getValue();
                                 Toast.makeText(LoginActivity.this, "Welcome! " + fullName,
                                         Toast.LENGTH_SHORT).show();
-
+                                //set fullname
+                                FirebaseUtil.setFullName(fullName);
                                 //To prevent user back to this activity by backkey
-                                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                                Intent intent = new Intent(LoginActivity.this, FeedsActivity.class);
                                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                 startActivity(intent);
                                 finish();

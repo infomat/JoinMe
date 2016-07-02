@@ -1,34 +1,34 @@
 package com.conestogac.assignment2;
 
-import android.*;
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
+import android.support.annotation.RequiresPermission;
+import android.support.design.widget.FloatingActionButton;
+import android.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
+
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 
@@ -38,76 +38,60 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
 
-public class MainActivity extends AppCompatActivity implements
-        GoogleApiClient.OnConnectionFailedListener,
-        EasyPermissions.PermissionCallbacks {
-    public static class MessageViewHolder extends RecyclerView.ViewHolder {
-        public TextView tvName;
-        public TextView tvDescription;
-        public ImageView imageView;
+public class FeedsActivity extends AppCompatActivity implements
+        PostFragment.OnPostSelectedListener {
 
-        public MessageViewHolder(View v) {
-            super(v);
-            tvName = (TextView) itemView.findViewById(R.id.tvName);
-            tvDescription = (TextView) itemView.findViewById(R.id.tvDescription);
-            imageView = (ImageView) itemView.findViewById(R.id.ivPhoto);
-        }
-    }
     //Reference to Database to read
-    private Firebase myFirebaseRef;
     private FirebaseAuth mAuth;
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = FeedsActivity.class.getSimpleName();
 
     //Set for GPS
-    private static final int REQUEST_ACCESS_FINE_LOCATION = 103;
-    private static final int REQUEST_ACCESS_COARSE_LOCATION = 104;
     LocationManager myLocationManager;
-    String locationProvider = LocationManager.GPS_PROVIDER;
-    Location currentLocation = new Location(locationProvider);
+    static String locationProvider = LocationManager.GPS_PROVIDER;
+    static Location currentLocation = new Location(locationProvider);
     boolean isGPSEnabled = false;
     boolean isNetworkEnabled = false;
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10;
     private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;
 
+    //Widgets
+    private FloatingActionButton mFab;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_feeds);
+        //Set up GPS service
+        myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
-        //Set up context to use Firebase
-        Firebase.setAndroidContext(this);
-        //Get firebase connect
-        myFirebaseRef = new Firebase("https://joinme-9831e.firebaseio.com/");
+        currentLocation = getLastKnownLocation();
 
         //Set add button Click listener
-        ImageButton btWrite = (ImageButton) findViewById(R.id.btWrite);
-
         //Todo Make sure location has correct information
-        btWrite.setOnClickListener(new View.OnClickListener() {
+        mFab = (FloatingActionButton) findViewById(R.id.fab);
+        mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent gotoTakePhoto = new Intent(MainActivity.this, NewPostActivity.class);
+
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                if (user == null || user.isAnonymous()) {
+                    Toast.makeText(FeedsActivity.this, "You must sign-in to post.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Intent gotoTakePhoto = new Intent(FeedsActivity.this, NewPostActivity.class);
                 gotoTakePhoto.putExtra(NewPostActivity.LOCATION_EXTRA_NAME, currentLocation);
                 startActivity(gotoTakePhoto);
             }
         });
 
-        //Set up GPS service
-        myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        setupLocationService();
+        //put location and create new fragment
+        Fragment postFragment = PostFragment.newInstance();
     }
 
-    /*
-        In case of filure in connection
-     */
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.d(TAG, "onConnectionFailed:" + connectionResult);
-    }
 
     @Override
     protected void onPause() {
-// TODO Auto-generated method stub
         super.onPause();
         // Remove the listener you previously added
         myLocationManager.removeUpdates(myLocationListener);
@@ -115,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onResume() {
-// TODO Auto-generated method stub
         super.onResume();
         //Check GPS or Network is enabled
         isGPSEnabled = myLocationManager.isProviderEnabled(myLocationManager.GPS_PROVIDER);
@@ -141,6 +124,57 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    //Todo
+    @Override
+    public void onPostLike(final String postKey) {
+        final String userKey = FirebaseUtil.getCurrentUserId();
+        //todo check likes reference which will be under users folder
+        final DatabaseReference postLikesRef = FirebaseUtil.getLikesRef();
+
+        Log.d(TAG, "onPostLike() UserKey: "+ userKey);
+        postLikesRef.child(postKey).child(userKey).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    // User already liked this post, so we toggle like off.
+                    postLikesRef.child(postKey).child(userKey).removeValue();
+                } else {
+                    postLikesRef.child(postKey).child(userKey).setValue(ServerValue.TIMESTAMP);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+
+            }
+        });
+    }
+
+    //Todo
+    public void onPostDisLike(final String postKey) {
+        final String userKey = FirebaseUtil.getCurrentUserId();
+        //todo dislikes path which will be under user's folder
+        final DatabaseReference postLikesRef = FirebaseUtil.getLikesRef();
+        postLikesRef.child(postKey).child(userKey).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    // User already liked this post, so we toggle like off.
+                    postLikesRef.child(postKey).child(userKey).removeValue();
+                } else {
+                    postLikesRef.child(postKey).child(userKey).setValue(ServerValue.TIMESTAMP);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+
+            }
+        });
+    }
+
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -161,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements
             mAuth = FirebaseAuth.getInstance();
             mAuth.signOut();
             //to prevent using back key, remove all task from the stack
-            Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
+            Intent intent = new Intent(FeedsActivity.this, WelcomeActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             return true;
@@ -170,27 +204,15 @@ public class MainActivity extends AppCompatActivity implements
         return super.onOptionsItemSelected(item);
     }
 
-    /*
-        Check Fine Location Permission
-     */
-    @AfterPermissionGranted(REQUEST_ACCESS_FINE_LOCATION)
-    private void setupLocationService() {
-        //Check
-        if (!EasyPermissions.hasPermissions(this, ACCESS_COARSE_LOCATION)) {
-            EasyPermissions.requestPermissions(this,
-                    getString(R.string.permission_rationale_gps),
-                    REQUEST_ACCESS_FINE_LOCATION, ACCESS_FINE_LOCATION);
-            return;
-        }
-    }
 
     //Get last Known location to get location faster
     private Location getLastKnownLocation() {
         myLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         List<String> providers = myLocationManager.getProviders(true);
         Location bestLocation = null;
-        for (String provider : providers) {
 
+        for (String provider : providers) {
+            //Permission
             Location l = myLocationManager.getLastKnownLocation(provider);
             if (l == null) {
                 continue;
@@ -238,8 +260,8 @@ public class MainActivity extends AppCompatActivity implements
     private static final int TWO_MINUTES = 1000 * 60 * 10;
 
     /** Determines whether one Location reading is better than the current Location fix
-     * @param location  The new Location that you want to evaluate
-     * @param currentBestLocation  The current Location fix, to which you want to compare the new one
+     * location  The new Location that you want to evaluate
+     * currentBestLocation  The current Location fix, to which you want to compare the new one
      */
     protected boolean isBetterLocation(Location location, Location currentBestLocation) {
         if (currentBestLocation == null) {
@@ -290,23 +312,5 @@ public class MainActivity extends AppCompatActivity implements
             return provider2 == null;
         }
         return provider1.equals(provider2);
-    }
-
-    /*
-      Callback received when a permissions request has been completed.
-   */
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
-    }
-
-    @Override
-    public void onPermissionsGranted(int requestCode, List<String> perms) {}
-
-    @Override
-    public void onPermissionsDenied(int requestCode, List<String> perms) {
     }
 }
