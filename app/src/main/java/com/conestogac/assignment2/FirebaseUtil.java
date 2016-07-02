@@ -35,7 +35,7 @@ public class FirebaseUtil {
         final FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return null;
 
-        return new Author(currentUserFullname, user.getUid());
+        return new Author(currentUserFullname, user.getUid(), user.getEmail());
     }
 
 

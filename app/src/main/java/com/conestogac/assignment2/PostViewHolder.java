@@ -5,13 +5,15 @@ import android.content.Intent;
 import android.location.Location;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
-
+import it.sephiroth.android.library.tooltip.Tooltip;
+import it.sephiroth.android.library.tooltip.Tooltip.AnimationBuilder;
 /**
  * This class is to hold a Post uploaded by user
  * It extends RecyclerView to reuse view template
@@ -19,6 +21,7 @@ import com.google.firebase.database.ValueEventListener;
  * Layout feed_item is related with this class
  */
 public class PostViewHolder extends RecyclerView.ViewHolder {
+    public final static String TAG = "PostViewHolder";
     private final View mView;
     private PostClickListener mListener;
     public DatabaseReference mPostRef;
@@ -36,6 +39,8 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
     private TextView mDistanceView;
     public String mPostKey;
     public ValueEventListener mLikeListener;
+    private Tooltip.TooltipView mCurrentTooltip;
+
 
     public PostViewHolder(View itemView) {
         super(itemView);
@@ -58,11 +63,11 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
     }
 
     //Set user icon's onClickListener to show user detail
-    public void setIcon(String url, final String authorId) {
+    public void setIcon(final String authorEmail) {
         mIconView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                showUserDetail(authorId);
+                showUserDetail(view,authorEmail);
             }
         });
     }
@@ -99,11 +104,28 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         }
     }
 
-    private void showUserDetail(String authorId) {
+    private void showUserDetail(View view, String authorEmail) {
         Context context = mView.getContext();
-        Intent userDetailIntent = new Intent(context, UserDetailActivity.class);
-        userDetailIntent.putExtra(UserDetailActivity.USER_ID_EXTRA_NAME, authorId);
-        context.startActivity(userDetailIntent);
+        //https://github.com/sephiroth74/android-target-tooltip
+        //Open source to display author email as a tooltips  if user select author icon
+        //todo Due to library bug, if '.' is inclded, it displays blank
+        Tooltip.make(
+                context, new Tooltip.Builder(101)
+                        .anchor(view, Tooltip.Gravity.BOTTOM)
+                        .closePolicy(new Tooltip.ClosePolicy()
+                                .insidePolicy(true, false)
+                                .outsidePolicy(true, false), 3000)
+                        .withStyleId(R.style.ToolTipLayoutCustomStyle)
+                        .floatingAnimation(AnimationBuilder.DEFAULT)
+                        .activateDelay(800)
+                        .showDelay(300)
+                        .text(authorEmail.replace('.',','))
+                        .maxWidth(600)
+                        .withArrow(true)
+                        .withOverlay(false)
+                        .build()
+        ).show();
+        Log.d(TAG, "Author email: "+authorEmail);
     }
 
     public void setTimestamp(String timestamp) {

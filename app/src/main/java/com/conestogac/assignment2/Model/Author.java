@@ -5,22 +5,21 @@ package com.conestogac.assignment2.Model;
  */
 public class Author {
     private String fullname;
-    private String profile_picture;
-
     private String uid;
+    private String email;
 
     public Author() {
     }
 
-    public Author(String fullname, String uid) {
+    public Author(String fullname, String uid, String email) {
         this.fullname = fullname;
         this.uid = uid;
+        this.email = email;
     }
 
-    public Author(String fullname, String profile_picture, String uid) {
+    public Author(String fullname, String email) {
         this.fullname = fullname;
-        this.profile_picture = profile_picture;
-        this.uid = uid;
+        this.email = email;
     }
 
     public String getUid() {
@@ -39,7 +38,12 @@ public class Author {
         this.fullname = fullname;
     }
 
-    public String getProfile_picture() {
-        return profile_picture;
+    public String getEmail() {
+        return email;
     }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
 }

@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.conestogac.assignment2.Model.Author;
 import com.conestogac.assignment2.Model.Post;
@@ -42,6 +43,7 @@ public class PostFragment extends Fragment {
 
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter<PostViewHolder> mAdapter;
+    private TextView mEmptyView;
 
     private Location curLocation;
 
@@ -90,6 +92,7 @@ public class PostFragment extends Fragment {
 
         // Add view under rootView
         mRecyclerView = (RecyclerView) rootView.findViewById(R.id.my_recycler_view);
+        mEmptyView = (TextView) rootView.findViewById(R.id.empty_list_item);
 
         return rootView;
     }
@@ -214,6 +217,7 @@ public class PostFragment extends Fragment {
      */
     private void setupPost(final PostViewHolder postViewHolder, final Post post, final int position, final String inPostKey) {
         postViewHolder.setPhoto(post.getThumb_url());
+        postViewHolder.setIcon(post.getAuthor().getEmail());
         postViewHolder.setText(post.getText());
         postViewHolder.setTimestamp(DateUtils.getRelativeTimeSpanString(
                 (long) post.getTimestamp()).toString());

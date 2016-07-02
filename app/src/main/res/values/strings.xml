@@ -33,7 +33,6 @@
 
     <string name="user_info_no_name">Anonymous</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="no_posts">No Posts</string>
 
 </resources>

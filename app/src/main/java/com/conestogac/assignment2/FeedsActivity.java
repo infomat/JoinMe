@@ -61,6 +61,7 @@ public class FeedsActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feeds);
+
         //Set up GPS service
         myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 

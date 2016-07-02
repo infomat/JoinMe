@@ -61,4 +61,28 @@
         <item name="android:textStyle">normal</item>
     </style>
 
+    <style name="ToolTipLayoutDefaultStyle.Custom1">
+        <item name="android:textAppearance">?android:attr/textAppearanceSmallInverse</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="ToolTipLayoutCustomStyle">
+        <item name="ttlm_padding">25dip</item>
+        <item name="ttlm_strokeColor">#ffff9900</item>
+        <item name="ttlm_backgroundColor">#ffff9900</item>
+        <item name="ttlm_strokeWeight">2dip</item>
+        <item name="ttlm_cornerRadius">8dip</item>
+        <item name="ttlm_overlayStyle">@style/ToolTipOverlayCustomStyle</item>
+        <item name="android:textAppearance">?android:attr/textAppearanceInverse</item>
+    </style>
+
+    <style name="ToolTipOverlayCustomStyle">
+        <item name="android:color">#66ffff00</item>
+        <item name="ttlm_repeatCount">999</item>
+        <item name="ttlm_duration">400</item>
+    </style>
+
+    <style name="ToolTipLayoutDefaultStyle.CustomFont" parent="ToolTipLayoutDefaultStyle">
+        <item name="ttlm_font">fonts/at.ttc</item>
+    </style>
 </resources>
