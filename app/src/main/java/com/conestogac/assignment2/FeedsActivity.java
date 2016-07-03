@@ -125,7 +125,46 @@ public class FeedsActivity extends AppCompatActivity implements
         }
     }
 
-    //Todo
+
+    /*
+        This will be used when icon is selected
+        State change None->Like->NotLike->None
+                //If data exists, it is like->dislike or notlike->None
+                //If data does not exist, it is none -> Like
+     */
+    @Override
+    public void onPostChangeLikeStatus(final String postKey) {
+        final String userKey = FirebaseUtil.getCurrentUserId();
+        //todo check likes reference which will be under users folder
+        final DatabaseReference postLikesRef = FirebaseUtil.getLikesRef();
+
+        Log.d(TAG, "onPostLike() UserKey: "+ userKey);
+        postLikesRef.child(postKey).child(userKey).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+
+
+                if (dataSnapshot.exists()) {
+                    if ((long)dataSnapshot.getValue() == 1) {
+                        postLikesRef.child(postKey).child(userKey).setValue(2);
+                    } else {
+                        postLikesRef.child(postKey).child(userKey).removeValue();
+                    }
+                } else {
+                    postLikesRef.child(postKey).child(userKey).setValue(1);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+
+            }
+        });
+    }
+
+    /*
+        If user swipe left, it will set like
+     */
     @Override
     public void onPostLike(final String postKey) {
         final String userKey = FirebaseUtil.getCurrentUserId();
@@ -137,13 +176,13 @@ public class FeedsActivity extends AppCompatActivity implements
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    // User already liked this post, so we toggle like off.
-                    postLikesRef.child(postKey).child(userKey).removeValue();
+                    if ((long)dataSnapshot.getValue() == 2) {
+                        postLikesRef.child(postKey).child(userKey).setValue(1);
+                    }
                 } else {
-                    postLikesRef.child(postKey).child(userKey).setValue(ServerValue.TIMESTAMP);
+                    postLikesRef.child(postKey).child(userKey).setValue(1);
                 }
             }
-
             @Override
             public void onCancelled(DatabaseError firebaseError) {
 
@@ -151,30 +190,33 @@ public class FeedsActivity extends AppCompatActivity implements
         });
     }
 
-    //Todo
+    /*
+        If user swipe left, it will set dislike
+    */
+    @Override
     public void onPostDisLike(final String postKey) {
         final String userKey = FirebaseUtil.getCurrentUserId();
-        //todo dislikes path which will be under user's folder
+        //todo check likes reference which will be under users folder
         final DatabaseReference postLikesRef = FirebaseUtil.getLikesRef();
+
+        Log.d(TAG, "onPostLike() UserKey: "+ userKey);
         postLikesRef.child(postKey).child(userKey).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    // User already liked this post, so we toggle like off.
-                    postLikesRef.child(postKey).child(userKey).removeValue();
+                    if ((long)dataSnapshot.getValue() == 1) {
+                        postLikesRef.child(postKey).child(userKey).setValue(2);
+                    }
                 } else {
-                    postLikesRef.child(postKey).child(userKey).setValue(ServerValue.TIMESTAMP);
+                    postLikesRef.child(postKey).child(userKey).setValue(2);
                 }
             }
-
             @Override
             public void onCancelled(DatabaseError firebaseError) {
 
             }
         });
     }
-
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -225,6 +267,9 @@ public class FeedsActivity extends AppCompatActivity implements
         return bestLocation;
     }
 
+    /*
+        Location Listener which is caleed Provider's status changed
+     */
     private LocationListener myLocationListener
             = new LocationListener() {
         @Override
@@ -245,7 +290,6 @@ public class FeedsActivity extends AppCompatActivity implements
             Log.d(TAG,"onProviderEnabled");
             currentLocation = getLastKnownLocation();
         }
-
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {

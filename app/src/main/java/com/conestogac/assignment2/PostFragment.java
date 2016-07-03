@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -37,6 +38,7 @@ public class PostFragment extends Fragment {
     public static final String TAG = "PostFragment";
     public static final String LOCATION_EXTRA = "location";
     private static final String KEY_LAYOUT_POSITION = "layoutPosition";
+    private static final int displayMode = 0;
 
     private int mRecyclerViewPosition = 0;
     private OnPostSelectedListener mListener;
@@ -50,7 +52,6 @@ public class PostFragment extends Fragment {
     public PostFragment() {
         // Required empty public constructor
     }
-
 
     //depending on type, postfragment will be created
     public static PostFragment newInstance() {
@@ -146,9 +147,18 @@ public class PostFragment extends Fragment {
         //Get all post
         //Todo with settting all posts or preferred posts
         Log.d(TAG, "Restoring recycler view position (all): " + mRecyclerViewPosition);
-        Query allPostsQuery = FirebaseUtil.getPostsRef();
-        mAdapter = getFirebaseRecyclerAdapter(allPostsQuery);
+        Query PostsQuery;
 
+        if (displayMode == 0) {         //All Posts
+            PostsQuery = FirebaseUtil.getPostsRef();
+        } else if (displayMode ==1) {   //Only Likes
+            PostsQuery = FirebaseUtil.getPostsRef();
+
+        } else {                        //Only Dislikes
+            PostsQuery = FirebaseUtil.getPostsRef();
+        }
+
+        mAdapter = getFirebaseRecyclerAdapter(PostsQuery);
         //Set observer on onItemRangeInserted
         mAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
@@ -157,6 +167,10 @@ public class PostFragment extends Fragment {
             }
         });
         mRecyclerView.setAdapter(mAdapter);
+
+        //Set callback as simpleCallbackItemTouchHelper and attach Recyle view
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallbackItemTouchHelper);
+        itemTouchHelper.attachToRecyclerView(mRecyclerView);
     }
 
     /*
@@ -256,13 +270,26 @@ public class PostFragment extends Fragment {
         ValueEventListener likeListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                postViewHolder.setNumLikes(dataSnapshot.getChildrenCount());
+                int likesCount = 0;
+                for (DataSnapshot child : dataSnapshot.getChildren()) {
+                    if ((long) child.getValue() == 1) {
+                        likesCount++;
+                    }
+                }
+                postViewHolder.setNumLikes(likesCount);
 
                 //Todo User likes, none, dislikes
-                if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId())) {
-                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus.LIKED, getActivity());
+                //if current user has likes, then set likes
+                //if current user has dislikes then set dislikes
+                //else set none
+                if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId()) &&
+                        (long)dataSnapshot.child(FirebaseUtil.getCurrentUserId()).getValue() == 1) {
+                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_LIKED, getActivity());
+                } else if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId()) &&
+                        (long)dataSnapshot.child(FirebaseUtil.getCurrentUserId()).getValue() == 2) {
+                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_NOTLIKED, getActivity());
                 } else {
-                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus.NOTLIKED, getActivity());
+                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_NONE, getActivity());
                 }
             }
 
@@ -281,12 +308,10 @@ public class PostFragment extends Fragment {
             @Override
             public void toggleLike() {
                 Log.d(TAG, "Like position: " + position);
-                mListener.onPostLike(postKey);
+                mListener.onPostChangeLikeStatus(postKey);
             }
         });
     }
-
-
 
     private int getRecyclerViewScrollPosition() {
         int scrollPosition = 0;
@@ -297,6 +322,33 @@ public class PostFragment extends Fragment {
         }
         return scrollPosition;
     }
+
+    /*
+        https://developer.android.com/reference/android/support/v7/widget/helper/ItemTouchHelper.SimpleCallback.html
+        Simple wrapper to the default Callback with drag, swipe directions
+     */
+    ItemTouchHelper.SimpleCallback simpleCallbackItemTouchHelper = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT|ItemTouchHelper.RIGHT){
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            return true;
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+            int position = viewHolder.getAdapterPosition();
+            String keyToChange;
+            keyToChange = ((FirebaseRecyclerAdapter) mAdapter).getRef(position).getKey();
+            if (direction == ItemTouchHelper.LEFT) {
+                Log.d(TAG, "Swipe LEFT at "+position);
+                mListener.onPostLike(keyToChange);
+            } else if (direction == ItemTouchHelper.RIGHT){
+                Log.d(TAG, "Swipe RIGHT "+position);
+                mListener.onPostDisLike(keyToChange);
+            }
+        }
+    };
+
     /**
       This interface must be implemented by activities that contain this
       fragment to allow an interaction in this fragment to be communicated
@@ -304,7 +356,8 @@ public class PostFragment extends Fragment {
       activity.
      */
     public interface OnPostSelectedListener {
+        void onPostChangeLikeStatus(String postKey);
         void onPostLike(String postKey);
+        void onPostDisLike(String postKey);
     }
-
 }

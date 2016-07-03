@@ -27,7 +27,10 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
     public DatabaseReference mPostRef;
     public ValueEventListener mPostListener;
 
-    public enum LikeStatus { NONE, LIKED, NOTLIKED }
+    public static final int LikeStatus_NONE = 0;
+    public static final int LikeStatus_LIKED = 1;
+    public static final int LikeStatus_NOTLIKED = 2;
+
     private final ImageView mLikeIcon;
     private static final int POST_TEXT_MAX_LINES = 6;
     private ImageView mPhotoView;
@@ -149,9 +152,16 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         mListener = listener;
     }
 
-    public void setLikeStatus(LikeStatus status, Context context) {
-        mLikeIcon.setImageDrawable(ContextCompat.getDrawable(context,
-                status == LikeStatus.LIKED ? R.drawable.heart_full : R.drawable.heart_empty));
+    public void setLikeStatus(int status, Context context) {
+        int image;
+        if (status == LikeStatus_LIKED) {
+            image = R.drawable.heart_full;
+        } else if (status == LikeStatus_NOTLIKED) {
+            image = R.drawable.ic_thumb_down_black_36dp;
+        } else {
+            image = R.drawable.heart_empty;
+        }
+        mLikeIcon.setImageDrawable(ContextCompat.getDrawable(context,image));
     }
 
     public interface PostClickListener {
