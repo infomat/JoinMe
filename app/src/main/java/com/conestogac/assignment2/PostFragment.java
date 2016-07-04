@@ -1,6 +1,10 @@
 package com.conestogac.assignment2;
 
+import android.app.DialogFragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -11,23 +15,29 @@ import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.conestogac.assignment2.Model.Author;
 import com.conestogac.assignment2.Model.Post;
+import com.conestogac.assignment2.FirebasePostQueryAdapter;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /*
@@ -38,7 +48,7 @@ public class PostFragment extends Fragment {
     public static final String TAG = "PostFragment";
     public static final String LOCATION_EXTRA = "location";
     private static final String KEY_LAYOUT_POSITION = "layoutPosition";
-    private static final int displayMode = 0;
+    private static int displayMode = 0;
 
     private int mRecyclerViewPosition = 0;
     private OnPostSelectedListener mListener;
@@ -46,7 +56,6 @@ public class PostFragment extends Fragment {
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter<PostViewHolder> mAdapter;
     private TextView mEmptyView;
-
     private Location curLocation;
 
     public PostFragment() {
@@ -95,6 +104,9 @@ public class PostFragment extends Fragment {
         mRecyclerView = (RecyclerView) rootView.findViewById(R.id.my_recycler_view);
         mEmptyView = (TextView) rootView.findViewById(R.id.empty_list_item);
 
+        //To Process actionbar event
+        setHasOptionsMenu(true);
+
         return rootView;
     }
 
@@ -140,33 +152,14 @@ public class PostFragment extends Fragment {
             mRecyclerView.scrollToPosition(mRecyclerViewPosition);
         }
 
-        // Get current location
+        // Get current location to calculate distanceSetting
         curLocation = FeedsActivity.currentLocation;
 
-
-        //Get all post
-        //Todo with settting all posts or preferred posts
+        //Get post
+        //Todo with setting, get all posts or preferred posts
         Log.d(TAG, "Restoring recycler view position (all): " + mRecyclerViewPosition);
-        Query PostsQuery;
 
-        if (displayMode == 0) {         //All Posts
-            PostsQuery = FirebaseUtil.getPostsRef();
-        } else if (displayMode ==1) {   //Only Likes
-            PostsQuery = FirebaseUtil.getPostsRef();
-
-        } else {                        //Only Dislikes
-            PostsQuery = FirebaseUtil.getPostsRef();
-        }
-
-        mAdapter = getFirebaseRecyclerAdapter(PostsQuery);
-        //Set observer on onItemRangeInserted
-        mAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
-            @Override
-            public void onItemRangeInserted(int positionStart, int itemCount) {
-                super.onItemRangeInserted(positionStart, itemCount);
-            }
-        });
-        mRecyclerView.setAdapter(mAdapter);
+        showAll();
 
         //Set callback as simpleCallbackItemTouchHelper and attach Recyle view
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallbackItemTouchHelper);
@@ -202,6 +195,91 @@ public class PostFragment extends Fragment {
         Log.d(TAG, "Recycler view scroll position: " + recyclerViewScrollPosition);
         savedInstanceState.putSerializable(KEY_LAYOUT_POSITION, recyclerViewScrollPosition);
         super.onSaveInstanceState(savedInstanceState);
+    }
+
+    /*
+        Show all when user select All menu on Actionbar
+    */
+    private void showAll() {
+        final DatabaseReference postLikeRef = FirebaseUtil.getLikesRef();
+        Query allPostsQuery = FirebaseUtil.getPostsRef();
+        mAdapter = getFirebaseRecyclerAdapter(allPostsQuery);
+        mAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                super.onItemRangeInserted(positionStart, itemCount);
+                // TODO: Refresh feed view.
+            }
+        });
+        mRecyclerView.setAdapter(mAdapter);
+    }
+    /*
+        Show like when user select like menu on Actionbar
+        Todo: Set Observer on delete
+    */
+    private void showLike() {
+        final DatabaseReference postLikeRef = FirebaseUtil.getLikesRef();
+        //Only Likes
+        postLikeRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot likeSnapshot) {
+                final List<String> postPaths = new ArrayList<String>();
+                for (DataSnapshot snapshot : likeSnapshot.getChildren()) {
+                    Log.d(TAG, "adding post key: " + snapshot.getKey());
+                    Log.d(TAG, "snapshot value: " +snapshot.getValue());
+                    if (snapshot.getValue().toString().contains(FirebaseUtil.getCurrentUserId()))
+                        if (snapshot.getValue().toString().contains("=1"))
+                            //Calculate Distance
+                            postPaths.add(snapshot.getKey());
+                }
+
+                //send list of liked post id to FirebasePostQueryAdapter
+                mAdapter = new FirebasePostQueryAdapter(postPaths, new FirebasePostQueryAdapter.OnSetupViewListener() {
+                    @Override
+                    public void onSetupView(PostViewHolder holder, Post post, int position, String postKey) {
+                        setupPost(holder, post, position, postKey);
+                    }
+                });
+                mRecyclerView.setAdapter(mAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+            }
+        });
+    }
+
+    /*
+        Show like when user select dislike menu on Actionbar
+        Todo: Set Observer on delete
+    */
+    private void showDislike() {
+        final DatabaseReference postLikeRef = FirebaseUtil.getLikesRef();
+        //Only Likes
+        postLikeRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot likeSnapshot) {
+                final List<String> postPaths = new ArrayList<String>();
+                for (DataSnapshot snapshot : likeSnapshot.getChildren()) {
+                    Log.d(TAG, "adding post key: " + snapshot.getKey());
+                    Log.d(TAG, "snapshot value: " +snapshot.getValue());
+                    if (snapshot.getValue().toString().contains(FirebaseUtil.getCurrentUserId()))
+                        if (snapshot.getValue().toString().contains("=2"))
+                            postPaths.add(snapshot.getKey());
+                }
+
+                //send list of liked post id to FirebasePostQueryAdapter
+                mAdapter = new FirebasePostQueryAdapter(postPaths, new FirebasePostQueryAdapter.OnSetupViewListener() {
+                    @Override
+                    public void onSetupView(PostViewHolder holder, Post post, int position, String postKey) {
+                        setupPost(holder, post, position, postKey);
+                    }
+                });
+                mRecyclerView.setAdapter(mAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+            }
+        });
     }
 
     /*
@@ -248,7 +326,7 @@ public class PostFragment extends Fragment {
                     Double.valueOf(post.getLocation().getlongitude()),
                     curLocation.getLatitude(),
                     curLocation.getLongitude(), results);
-            postViewHolder.setDistance(results[0]);
+            postViewHolder.setDistance((float)(results[0]/1000.0));
         } else {
             postViewHolder.setDistance(0);
         }
@@ -340,7 +418,7 @@ public class PostFragment extends Fragment {
             String keyToChange;
             keyToChange = ((FirebaseRecyclerAdapter) mAdapter).getRef(position).getKey();
             if (direction == ItemTouchHelper.LEFT) {
-                Log.d(TAG, "Swipe LEFT at "+position);
+                Log.d(TAG, "Swipe LEFT  "+position);
                 mListener.onPostLike(keyToChange);
             } else if (direction == ItemTouchHelper.RIGHT){
                 Log.d(TAG, "Swipe RIGHT "+position);
@@ -349,6 +427,39 @@ public class PostFragment extends Fragment {
         }
     };
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        switch (id) {
+            case R.id.action_show_all:
+                showMessage("Show all");
+                showAll();
+                break;
+
+            case R.id.action_show_dislike:
+                showMessage("Show Dislike");
+                showDislike();
+                break;
+
+            case R.id.action_show_like:
+                showMessage("Show Like");
+                showLike();
+                break;
+
+            default:
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showMessage(String msg) {
+        Toast.makeText(getActivity(), msg,
+                Toast.LENGTH_SHORT).show();
+    }
     /**
       This interface must be implemented by activities that contain this
       fragment to allow an interaction in this fragment to be communicated

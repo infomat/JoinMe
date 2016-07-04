@@ -1,14 +1,11 @@
 package com.conestogac.assignment2;
 
-import android.annotation.SuppressLint;
-import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresPermission;
 import android.support.design.widget.FloatingActionButton;
 import android.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
@@ -19,23 +16,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
-
 import java.util.List;
-
-import pub.devrel.easypermissions.AfterPermissionGranted;
-import pub.devrel.easypermissions.EasyPermissions;
 
 
 public class FeedsActivity extends AppCompatActivity implements
@@ -54,6 +42,9 @@ public class FeedsActivity extends AppCompatActivity implements
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10;
     private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;
 
+    //Will be used to filter out with distanceSetting
+    public static long distanceSetting = 0;
+
     //Widgets
     private FloatingActionButton mFab;
 
@@ -61,6 +52,11 @@ public class FeedsActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feeds);
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
+
+        //Set Title
+        setTitle("Distance: "+ String.valueOf(distanceSetting) + "kms");
 
         //Set up GPS service
         myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -104,6 +100,10 @@ public class FeedsActivity extends AppCompatActivity implements
         //Check GPS or Network is enabled
         isGPSEnabled = myLocationManager.isProviderEnabled(myLocationManager.GPS_PROVIDER);
         isNetworkEnabled = myLocationManager.isProviderEnabled(myLocationManager.NETWORK_PROVIDER);
+
+        //update setting distance
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
 
         //If both are unavailable, show error
         if(!isGPSEnabled && !isNetworkEnabled) {
@@ -225,6 +225,10 @@ public class FeedsActivity extends AppCompatActivity implements
         return true;
     }
 
+    /*
+        Process Actionbar menu event.
+        Show Like, DisLike, All will be processed within PostFragment
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -233,17 +237,22 @@ public class FeedsActivity extends AppCompatActivity implements
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_logout) {
-            // Initialize authentication and set up callbacks
-            mAuth = FirebaseAuth.getInstance();
-            mAuth.signOut();
-            //to prevent using back key, remove all task from the stack
-            Intent intent = new Intent(FeedsActivity.this, WelcomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            return true;
-        }
+        switch (id) {
+            case R.id.action_logout:
+                // Initialize authentication and set up callbacks
+                mAuth = FirebaseAuth.getInstance();
+                mAuth.signOut();
+                //to prevent using back key, remove all task from the stack
+                Intent intent = new Intent(FeedsActivity.this, WelcomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                return true;
 
+            case R.id.action_setting_distance:
+                SetDistanceFragment dialogFragment = new SetDistanceFragment();
+                dialogFragment.show(getSupportFragmentManager(),"Distance");
+                break;
+        }
         return super.onOptionsItemSelected(item);
     }
 

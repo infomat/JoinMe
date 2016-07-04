@@ -2,13 +2,14 @@
     <string name="app_name">JoinMe</string>
 
     <!-- Common -->
-
+    <string name="saved_distance">DISTANCE</string>
 
     <!-- Strings related to login -->
     <string name="welcome_screen_text">Join Me!</string>
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password</string>
     <string name="prompt_name">Fullname</string>
+
     <string name="action_sign_in">Sign in</string>
     <string name="action_sign_up">Sign up</string>
     <string name="action_sign_in_short">Sign in</string>
@@ -24,21 +25,21 @@
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
     <string name="error_upload_task_create">During upload, there is an error</string>
-    <string name="permission_rationale_contact">"Contacts permissions are needed for providing email completions."
-    </string>
-    <string name="permission_rationale_cam">"External Storage permissions are needed \nfor taking picture completions."
-    </string>
-     <string name="permission_rationale_gps">"Location permissions are needed \nfor filtering location."
-    </string>
+
+    <string name="permission_rationale_contact">"Contacts permissions are needed for providing email completions."</string>
+    <string name="permission_rationale_cam">"External Storage permissions are needed \nfor taking picture completions."</string>
+    <string name="permission_rationale_gps">"Location permissions are needed \nfor filtering location."</string>
+
+    <string name="hint_set_distance">Maximum distance to show. Enter 0 to reset</string>
     <string name="hint_write_content">Write your activity</string>
     <string name="album_name">JoinMe</string>
     <string name="login_progress_message">Signing in...</string>
     <string name="upload_progress_message">Uploading...</string>
-
     <string name="submit">Submit</string>
-
     <string name="user_info_no_name">Anonymous</string>
-
     <string name="no_posts">No Posts</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

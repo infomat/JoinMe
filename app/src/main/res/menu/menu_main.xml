@@ -40,7 +40,7 @@
         android:id="@+id/action_setting_distance"
         android:orderInCategory="100"
         android:title="@string/action_setting_distance"
-        app:showAsAction="always"
+        app:showAsAction="never"
         android:icon="@drawable/ic_signal_wifi_4_bar_white_36dp"/>
     <item
         android:id="@+id/action_logout"
