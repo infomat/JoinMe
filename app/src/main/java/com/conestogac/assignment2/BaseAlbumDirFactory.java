@@ -5,7 +5,7 @@ import android.os.Environment;
 import java.io.File;
 
 /**
- * Created by infomat on 16-06-25.
+ *
  * This class extends Abtract AlbumStorageDirFactory to support old version's DCIM folder
  */
 public final class BaseAlbumDirFactory extends AlbumStorageDirFactory {

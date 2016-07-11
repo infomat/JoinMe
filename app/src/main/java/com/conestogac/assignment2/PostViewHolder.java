@@ -39,9 +39,8 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
     private TextView mTimestampView;
     private TextView mNumLikesView;
     private TextView mDistanceView;
-    public String mPostKey;
+    private String mPostKey;
     public ValueEventListener mLikeListener;
-    private Tooltip.TooltipView mCurrentTooltip;
 
 
     public PostViewHolder(View itemView) {
@@ -62,6 +61,14 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
                 mListener.toggleLike();
             }
         });
+    }
+
+    public void setPostKey(String postKey) {
+         mPostKey = postKey;
+    }
+
+    public String getPostKey() {
+        return mPostKey;
     }
 
     //Set user icon's onClickListener to show user detail

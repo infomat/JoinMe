@@ -33,7 +33,7 @@
             android:name=".LoginActivity"
             android:excludeFromRecents="true"
             android:taskAffinity="" />
-        <activity android:name=".FeedsActivity" />
+        <activity android:name=".ListPostActivity" />
         <activity android:name=".NewPostActivity" />
         <activity
             android:name=".WelcomeActivity"

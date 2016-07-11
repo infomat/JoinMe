@@ -1,5 +1,5 @@
 package com.conestogac.assignment2;
-
+import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,7 +7,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.support.design.widget.FloatingActionButton;
-import android.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -26,12 +25,12 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.List;
 
 
-public class FeedsActivity extends AppCompatActivity implements
-        PostFragment.OnPostSelectedListener {
+public class ListPostActivity extends AppCompatActivity implements
+        PostFragment.OnPostSelectedListener{
 
     //Reference to Database to read
     private FirebaseAuth mAuth;
-    private static final String TAG = FeedsActivity.class.getSimpleName();
+    private static final String TAG = ListPostActivity.class.getSimpleName();
 
     //Set for GPS
     LocationManager myLocationManager;
@@ -39,11 +38,9 @@ public class FeedsActivity extends AppCompatActivity implements
     static Location currentLocation = new Location(locationProvider);
     boolean isGPSEnabled = false;
     boolean isNetworkEnabled = false;
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10;
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;
 
     //Will be used to filter out with distanceSetting
-    public static long distanceSetting = 0;
+    public long distanceSetting = 0;
 
     //Widgets
     private FloatingActionButton mFab;
@@ -51,12 +48,12 @@ public class FeedsActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_feeds);
+        setContentView(R.layout.activity_list_post);
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
 
         //Set Title
-        setTitle("Distance: "+ String.valueOf(distanceSetting) + "kms");
+        setTitle("Distance: "+ String.valueOf(distanceSetting) + " Kms");
 
         //Set up GPS service
         myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -72,11 +69,11 @@ public class FeedsActivity extends AppCompatActivity implements
 
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 if (user == null || user.isAnonymous()) {
-                    Toast.makeText(FeedsActivity.this, "You must sign-in to post.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ListPostActivity.this, "You must sign-in to post.", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                Intent gotoTakePhoto = new Intent(FeedsActivity.this, NewPostActivity.class);
+                Intent gotoTakePhoto = new Intent(ListPostActivity.this, NewPostActivity.class);
                 gotoTakePhoto.putExtra(NewPostActivity.LOCATION_EXTRA_NAME, currentLocation);
                 startActivity(gotoTakePhoto);
             }
@@ -104,6 +101,7 @@ public class FeedsActivity extends AppCompatActivity implements
         //update setting distance
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
+        setTitle("Distance: "+ String.valueOf(distanceSetting) + "kms");
 
         //If both are unavailable, show error
         if(!isGPSEnabled && !isNetworkEnabled) {
@@ -124,7 +122,6 @@ public class FeedsActivity extends AppCompatActivity implements
             currentLocation = this.getLastKnownLocation();
         }
     }
-
 
     /*
         This will be used when icon is selected
@@ -243,15 +240,10 @@ public class FeedsActivity extends AppCompatActivity implements
                 mAuth = FirebaseAuth.getInstance();
                 mAuth.signOut();
                 //to prevent using back key, remove all task from the stack
-                Intent intent = new Intent(FeedsActivity.this, WelcomeActivity.class);
+                Intent intent = new Intent(ListPostActivity.this, WelcomeActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 return true;
-
-            case R.id.action_setting_distance:
-                SetDistanceFragment dialogFragment = new SetDistanceFragment();
-                dialogFragment.show(getSupportFragmentManager(),"Distance");
-                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -264,7 +256,7 @@ public class FeedsActivity extends AppCompatActivity implements
         Location bestLocation = null;
 
         for (String provider : providers) {
-            //Permission
+            //Permission was approved at the beginning
             Location l = myLocationManager.getLastKnownLocation(provider);
             if (l == null) {
                 continue;

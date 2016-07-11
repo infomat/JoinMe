@@ -44,9 +44,18 @@ public class FirebasePostQueryAdapter extends RecyclerView.Adapter<PostViewHolde
         notifyDataSetChanged();
     }
 
+    public String getPaths(int position) {
+        return mPostPaths.get(position);
+    }
+
     public void addItem(String path) {
         mPostPaths.add(path);
         notifyItemInserted(mPostPaths.size());
+    }
+
+    public void removeItem(int location) {
+        mPostPaths.remove(location);
+        notifyItemRemoved(mPostPaths.size());
     }
 
     @Override
@@ -60,8 +69,8 @@ public class FirebasePostQueryAdapter extends RecyclerView.Adapter<PostViewHolde
                 Log.d(TAG, "post key: " + dataSnapshot.getKey());
 
                 mOnSetupViewListener.onSetupView(holder, post, holder.getAdapterPosition(),
-                        dataSnapshot.getKey());
-
+                            dataSnapshot.getKey());
+                holder.setPostKey(dataSnapshot.getKey());
             }
 
             @Override

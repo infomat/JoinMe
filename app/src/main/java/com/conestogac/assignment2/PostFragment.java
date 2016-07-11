@@ -1,14 +1,10 @@
 package com.conestogac.assignment2;
-
-import android.app.DialogFragment;
+import android.support.v4.app.Fragment;
 import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.Context;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -23,11 +19,7 @@ import android.widget.Toast;
 
 import com.conestogac.assignment2.Model.Author;
 import com.conestogac.assignment2.Model.Post;
-import com.conestogac.assignment2.FirebasePostQueryAdapter;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -35,15 +27,14 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 /*
  * Fragment to display list of posts
  */
-public class PostFragment extends Fragment {
+public class PostFragment extends Fragment
+    implements SetDistanceFragment.SetDistanceDialogListener{
 
     public static final String TAG = "PostFragment";
     public static final String LOCATION_EXTRA = "location";
@@ -57,6 +48,7 @@ public class PostFragment extends Fragment {
     private RecyclerView.Adapter<PostViewHolder> mAdapter;
     private TextView mEmptyView;
     private Location curLocation;
+    private long distanceSetting;
 
     public PostFragment() {
         // Required empty public constructor
@@ -82,6 +74,8 @@ public class PostFragment extends Fragment {
             throw new RuntimeException(context.toString()
                     + " must implement OnPostSelectedListener");
         }
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
     }
 
 
@@ -153,14 +147,16 @@ public class PostFragment extends Fragment {
         }
 
         // Get current location to calculate distanceSetting
-        curLocation = FeedsActivity.currentLocation;
+        curLocation = ListPostActivity.currentLocation;
 
         //Get post
         //Todo with setting, get all posts or preferred posts
         Log.d(TAG, "Restoring recycler view position (all): " + mRecyclerViewPosition);
 
-        showAll();
+        showNew();
 
+        //Item Touch Helper for swiping
+        //https://developer.android.com/reference/android/support/v7/widget/helper/ItemTouchHelper.html
         //Set callback as simpleCallbackItemTouchHelper and attach Recyle view
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallbackItemTouchHelper);
         itemTouchHelper.attachToRecyclerView(mRecyclerView);
@@ -197,22 +193,77 @@ public class PostFragment extends Fragment {
         super.onSaveInstanceState(savedInstanceState);
     }
 
+    // This is called when the dialog is completed and the results have been passed
+    @Override
+    public void onFinishSetDistanceDialog(int distanceSetting) {
+        //update setting distance 
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(getString(R.string.saved_distance), distanceSetting);
+        editor.commit();
+        this.distanceSetting = distanceSetting;
+        getActivity().setTitle("Distance: "+ String.valueOf(distanceSetting) + "kms");
+        showNew();
+    }
+
+
     /*
         Show all when user select All menu on Actionbar
     */
     private void showAll() {
-        final DatabaseReference postLikeRef = FirebaseUtil.getLikesRef();
         Query allPostsQuery = FirebaseUtil.getPostsRef();
+
         mAdapter = getFirebaseRecyclerAdapter(allPostsQuery);
         mAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
             public void onItemRangeInserted(int positionStart, int itemCount) {
                 super.onItemRangeInserted(positionStart, itemCount);
-                // TODO: Refresh feed view.
             }
         });
         mRecyclerView.setAdapter(mAdapter);
     }
+
+    /*
+          Show according to distance filter
+      */
+    private void showNew() {
+        Query allPostsQuery = FirebaseUtil.getPostsRef();
+
+        allPostsQuery.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot likeSnapshot) {
+                float[] results = {0};
+                final List<String> postPaths = new ArrayList<String>();
+                for (DataSnapshot snapshot : likeSnapshot.getChildren()) {
+                    Log.d(TAG, "adding post key: " + snapshot.getKey());
+                    Log.d(TAG, "snapshot value: " +snapshot.getValue());
+
+                    Post post = snapshot.getValue(Post.class);
+                    //Calculate Distance
+                    Location.distanceBetween(Double.valueOf(post.getLocation().getlatitude()),
+                            Double.valueOf(post.getLocation().getlongitude()),
+                            curLocation.getLatitude(),
+                            curLocation.getLongitude(), results);
+
+                    if ((distanceSetting == 0)|| (results[0] <= distanceSetting * 1000))
+                        postPaths.add(snapshot.getKey());
+                }
+
+                //send list of liked post id to FirebasePostQueryAdapter
+                mAdapter = new FirebasePostQueryAdapter(postPaths, new FirebasePostQueryAdapter.OnSetupViewListener() {
+                    @Override
+                    public void onSetupView(PostViewHolder holder, Post post, int position, String postKey) {
+                        setupPost(holder, post, position, postKey);
+                    }
+                });
+                mRecyclerView.setAdapter(mAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+            }
+        });
+    }
+
     /*
         Show like when user select like menu on Actionbar
         Todo: Set Observer on delete
@@ -360,6 +411,7 @@ public class PostFragment extends Fragment {
                 //if current user has likes, then set likes
                 //if current user has dislikes then set dislikes
                 //else set none
+
                 if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId()) &&
                         (long)dataSnapshot.child(FirebaseUtil.getCurrentUserId()).getValue() == 1) {
                     postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_LIKED, getActivity());
@@ -412,11 +464,21 @@ public class PostFragment extends Fragment {
             return true;
         }
 
+
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
             int position = viewHolder.getAdapterPosition();
             String keyToChange;
-            keyToChange = ((FirebaseRecyclerAdapter) mAdapter).getRef(position).getKey();
+
+            if (mAdapter instanceof FirebaseRecyclerAdapter) {
+                keyToChange = ((FirebaseRecyclerAdapter) mAdapter).getRef(position).getKey();
+            } else {
+                keyToChange = ((PostViewHolder)viewHolder).getPostKey();
+            }
+
+            //remove selected item from adapter when selected
+            ((FirebasePostQueryAdapter) mAdapter).removeItem(position);
+
             if (direction == ItemTouchHelper.LEFT) {
                 Log.d(TAG, "Swipe LEFT  "+position);
                 mListener.onPostLike(keyToChange);
@@ -437,18 +499,27 @@ public class PostFragment extends Fragment {
         //noinspection SimplifiableIfStatement
         switch (id) {
             case R.id.action_show_all:
-                showMessage("Show all");
-                showAll();
+                showMessage("Show New within Distance setting");
+                showNew();
                 break;
 
             case R.id.action_show_dislike:
-                showMessage("Show Dislike");
+                showMessage("Show what you set as Dislike regardless of Distance");
                 showDislike();
                 break;
 
             case R.id.action_show_like:
-                showMessage("Show Like");
+                showMessage("Show what you set as Like regardless of Distance");
                 showLike();
+                break;
+
+            case R.id.action_setting_distance:
+                setTargetFragment(this, 1);
+                SetDistanceFragment setDistanceFragment = SetDistanceFragment.newInstance("Set Distance");
+                // SETS the target fragment for use later when sending results
+                setDistanceFragment.setTargetFragment(PostFragment.this, 300);
+                setDistanceFragment.show(getActivity().getSupportFragmentManager(), "fragment_edit_name");
+
                 break;
 
             default:
