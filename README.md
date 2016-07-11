@@ -13,6 +13,7 @@ Although crash report is included, but it is used as it is.
 
 ## Used Skills
 - Firebase Auth, Storage, Database, Crashreport
+- How to organize container and NoSQL Database to find information efficiently
 - Fragment and communication with Activity using interface
 - Dialog Fragment
 - Recycler View and viewholder, RecyclerView.Adapter
@@ -22,6 +23,7 @@ Although crash report is included, but it is used as it is.
 - Using Style 
 - Using GPS to get location
 - Using Camera and change between BMP and JPEG
+
 
 
 ## Used open source
