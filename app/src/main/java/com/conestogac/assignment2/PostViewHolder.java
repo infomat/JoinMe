@@ -2,7 +2,6 @@ package com.conestogac.assignment2;
 
 import android.content.Context;
 import android.content.Intent;
-import android.location.Location;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -27,7 +26,10 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
     public DatabaseReference mPostRef;
     public ValueEventListener mPostListener;
 
-    public enum LikeStatus { NONE, LIKED, NOTLIKED }
+    public static final int LikeStatus_NONE = 0;
+    public static final int LikeStatus_LIKED = 1;
+    public static final int LikeStatus_NOTLIKED = 2;
+
     private final ImageView mLikeIcon;
     private static final int POST_TEXT_MAX_LINES = 6;
     private ImageView mPhotoView;
@@ -37,9 +39,8 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
     private TextView mTimestampView;
     private TextView mNumLikesView;
     private TextView mDistanceView;
-    public String mPostKey;
+    private String mPostKey;
     public ValueEventListener mLikeListener;
-    private Tooltip.TooltipView mCurrentTooltip;
 
 
     public PostViewHolder(View itemView) {
@@ -62,6 +63,14 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         });
     }
 
+    public void setPostKey(String postKey) {
+         mPostKey = postKey;
+    }
+
+    public String getPostKey() {
+        return mPostKey;
+    }
+
     //Set user icon's onClickListener to show user detail
     public void setIcon(final String authorEmail) {
         mIconView.setOnClickListener(new View.OnClickListener() {
@@ -72,10 +81,17 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         });
     }
 
+    /*
+      Set url of photo to be displayed. Glide libaray will make fetch image at background and
+      display at mphotoView imageview automatically
+     */
     public void setPhoto(String url) {
         GlideUtil.loadImage(url, mPhotoView);
     }
 
+    /*
+    Set Author information
+     */
     public void setAuthor(String author) {
         if (author == null || author.isEmpty()) {
             author = mView.getResources().getString(R.string.user_info_no_name);
@@ -83,6 +99,9 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         mAuthorView.setText(author);
     }
 
+    /*
+       Set text view
+     */
     public void setText(final String text) {
         if (text == null || text.isEmpty()) {
             mPostTextView.setVisibility(View.GONE);
@@ -103,6 +122,10 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
             });
         }
     }
+
+    /*
+     Show user's email at tool-tip
+     */
 
     private void showUserDetail(View view, String authorEmail) {
         Context context = mView.getContext();
@@ -128,15 +151,24 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         Log.d(TAG, "Author email: "+authorEmail);
     }
 
+    /*
+        Set time stamp
+     */
     public void setTimestamp(String timestamp) {
         mTimestampView.setText(timestamp);
     }
 
+    /*
+        Set number of likes
+     */
     public void setNumLikes(long numLikes) {
         String suffix = numLikes == 1 ? " like" : " likes";
         mNumLikesView.setText(numLikes + suffix);
     }
 
+    /*
+      calculate distance based on current uses's GPS coordinate and author's coordinate
+     */
     public void setDistance(float distance) {
         String prefix = "Distance: ";
         String suffix = " km";
@@ -149,9 +181,19 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         mListener = listener;
     }
 
-    public void setLikeStatus(LikeStatus status, Context context) {
-        mLikeIcon.setImageDrawable(ContextCompat.getDrawable(context,
-                status == LikeStatus.LIKED ? R.drawable.heart_full : R.drawable.heart_empty));
+    /*
+        Set change likeness drawable according to status
+     */
+    public void setLikeStatus(int status, Context context) {
+        int image;
+        if (status == LikeStatus_LIKED) {
+            image = R.drawable.heart_full;
+        } else if (status == LikeStatus_NOTLIKED) {
+            image = R.drawable.ic_thumb_down_black_36dp;
+        } else {
+            image = R.drawable.heart_empty;
+        }
+        mLikeIcon.setImageDrawable(ContextCompat.getDrawable(context,image));
     }
 
     public interface PostClickListener {

@@ -1,16 +1,12 @@
 package com.conestogac.assignment2;
-
-import android.annotation.SuppressLint;
-import android.app.FragmentTransaction;
+import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresPermission;
 import android.support.design.widget.FloatingActionButton;
-import android.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,31 +15,26 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
-
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 
 import java.util.List;
 
-import pub.devrel.easypermissions.AfterPermissionGranted;
-import pub.devrel.easypermissions.EasyPermissions;
-
-
-public class FeedsActivity extends AppCompatActivity implements
-        PostFragment.OnPostSelectedListener {
+/*
+    This class is a activity for displaying list of posts
+    After user change the status of likeness, event will be handed through the interface
+    onPostLike(),onPostChangeLikeStatus(),onPostDisLike()
+ */
+public class ListPostActivity extends AppCompatActivity implements
+        PostFragment.OnPostSelectedListener{
 
     //Reference to Database to read
     private FirebaseAuth mAuth;
-    private static final String TAG = FeedsActivity.class.getSimpleName();
+    private static final String TAG = ListPostActivity.class.getSimpleName();
 
     //Set for GPS
     LocationManager myLocationManager;
@@ -51,8 +42,9 @@ public class FeedsActivity extends AppCompatActivity implements
     static Location currentLocation = new Location(locationProvider);
     boolean isGPSEnabled = false;
     boolean isNetworkEnabled = false;
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10;
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;
+
+    //Will be used to filter out with distanceSetting
+    public long distanceSetting = 0;
 
     //Widgets
     private FloatingActionButton mFab;
@@ -60,11 +52,15 @@ public class FeedsActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_feeds);
+        setContentView(R.layout.activity_list_post);
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
+
+        //Set Title
+        setTitle("Distance: "+ String.valueOf(distanceSetting) + " Kms");
 
         //Set up GPS service
         myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
         currentLocation = getLastKnownLocation();
 
         //Set add button Click listener
@@ -76,11 +72,11 @@ public class FeedsActivity extends AppCompatActivity implements
 
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 if (user == null || user.isAnonymous()) {
-                    Toast.makeText(FeedsActivity.this, "You must sign-in to post.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ListPostActivity.this, "You must sign-in to post.", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                Intent gotoTakePhoto = new Intent(FeedsActivity.this, NewPostActivity.class);
+                Intent gotoTakePhoto = new Intent(ListPostActivity.this, NewPostActivity.class);
                 gotoTakePhoto.putExtra(NewPostActivity.LOCATION_EXTRA_NAME, currentLocation);
                 startActivity(gotoTakePhoto);
             }
@@ -105,6 +101,11 @@ public class FeedsActivity extends AppCompatActivity implements
         isGPSEnabled = myLocationManager.isProviderEnabled(myLocationManager.GPS_PROVIDER);
         isNetworkEnabled = myLocationManager.isProviderEnabled(myLocationManager.NETWORK_PROVIDER);
 
+        //update setting distance
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
+        setTitle("Distance: "+ String.valueOf(distanceSetting) + "kms");
+
         //If both are unavailable, show error
         if(!isGPSEnabled && !isNetworkEnabled) {
             Context context = getApplicationContext();
@@ -125,7 +126,45 @@ public class FeedsActivity extends AppCompatActivity implements
         }
     }
 
-    //Todo
+    /*
+        This will be used when icon is selected
+        State change None->Like->NotLike->None
+                If data exists, it is like->dislike or notlike->None
+                If data does not exist, it is none -> Like
+     */
+    @Override
+    public void onPostChangeLikeStatus(final String postKey) {
+        final String userKey = FirebaseUtil.getCurrentUserId();
+        //todo check likes reference which will be under users folder
+        final DatabaseReference postLikesRef = FirebaseUtil.getLikesRef();
+
+        Log.d(TAG, "onPostLike() UserKey: "+ userKey);
+        postLikesRef.child(postKey).child(userKey).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+
+
+                if (dataSnapshot.exists()) {
+                    if ((long)dataSnapshot.getValue() == 1) {
+                        postLikesRef.child(postKey).child(userKey).setValue(2);
+                    } else {
+                        postLikesRef.child(postKey).child(userKey).removeValue();
+                    }
+                } else {
+                    postLikesRef.child(postKey).child(userKey).setValue(1);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+
+            }
+        });
+    }
+
+    /*
+        If user swipe left, it will set like
+     */
     @Override
     public void onPostLike(final String postKey) {
         final String userKey = FirebaseUtil.getCurrentUserId();
@@ -137,13 +176,13 @@ public class FeedsActivity extends AppCompatActivity implements
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    // User already liked this post, so we toggle like off.
-                    postLikesRef.child(postKey).child(userKey).removeValue();
+                    if ((long)dataSnapshot.getValue() == 2) {
+                        postLikesRef.child(postKey).child(userKey).setValue(1);
+                    }
                 } else {
-                    postLikesRef.child(postKey).child(userKey).setValue(ServerValue.TIMESTAMP);
+                    postLikesRef.child(postKey).child(userKey).setValue(1);
                 }
             }
-
             @Override
             public void onCancelled(DatabaseError firebaseError) {
 
@@ -151,22 +190,27 @@ public class FeedsActivity extends AppCompatActivity implements
         });
     }
 
-    //Todo
+    /*
+        If user swipe left, it will set dislike
+    */
+    @Override
     public void onPostDisLike(final String postKey) {
         final String userKey = FirebaseUtil.getCurrentUserId();
-        //todo dislikes path which will be under user's folder
+        //todo check likes reference which will be under users folder
         final DatabaseReference postLikesRef = FirebaseUtil.getLikesRef();
+
+        Log.d(TAG, "onPostLike() UserKey: "+ userKey);
         postLikesRef.child(postKey).child(userKey).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    // User already liked this post, so we toggle like off.
-                    postLikesRef.child(postKey).child(userKey).removeValue();
+                    if ((long)dataSnapshot.getValue() == 1) {
+                        postLikesRef.child(postKey).child(userKey).setValue(2);
+                    }
                 } else {
-                    postLikesRef.child(postKey).child(userKey).setValue(ServerValue.TIMESTAMP);
+                    postLikesRef.child(postKey).child(userKey).setValue(2);
                 }
             }
-
             @Override
             public void onCancelled(DatabaseError firebaseError) {
 
@@ -174,8 +218,9 @@ public class FeedsActivity extends AppCompatActivity implements
         });
     }
 
-
-
+    /*
+        To Inflate option menu
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -183,6 +228,10 @@ public class FeedsActivity extends AppCompatActivity implements
         return true;
     }
 
+    /*
+        Process Actionbar menu event.
+        Show Like, DisLike, All will be processed within PostFragment
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -191,29 +240,31 @@ public class FeedsActivity extends AppCompatActivity implements
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_logout) {
-            // Initialize authentication and set up callbacks
-            mAuth = FirebaseAuth.getInstance();
-            mAuth.signOut();
-            //to prevent using back key, remove all task from the stack
-            Intent intent = new Intent(FeedsActivity.this, WelcomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            return true;
+        switch (id) {
+            case R.id.action_logout:
+                // Initialize authentication and set up callbacks
+                mAuth = FirebaseAuth.getInstance();
+                mAuth.signOut();
+                //to prevent using back key, remove all task from the stack
+                Intent intent = new Intent(ListPostActivity.this, WelcomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
 
-    //Get last Known location to get location faster
+    /*
+        Get last Known location to get location faster
+     */
     private Location getLastKnownLocation() {
         myLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         List<String> providers = myLocationManager.getProviders(true);
         Location bestLocation = null;
 
         for (String provider : providers) {
-            //Permission
+            //Permission was approved at the beginning
             Location l = myLocationManager.getLastKnownLocation(provider);
             if (l == null) {
                 continue;
@@ -225,6 +276,9 @@ public class FeedsActivity extends AppCompatActivity implements
         return bestLocation;
     }
 
+    /*
+        Location Listener which is caleed Provider's status changed
+     */
     private LocationListener myLocationListener
             = new LocationListener() {
         @Override
@@ -245,7 +299,6 @@ public class FeedsActivity extends AppCompatActivity implements
             Log.d(TAG,"onProviderEnabled");
             currentLocation = getLastKnownLocation();
         }
-
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {

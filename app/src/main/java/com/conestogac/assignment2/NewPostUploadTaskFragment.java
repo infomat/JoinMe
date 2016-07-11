@@ -32,6 +32,7 @@ import java.util.Map;
  * This call is a fragment for processing uploading new post
  * It will be run as Async Task for non blocking UI thread and
  * Call back onPostUploaded will be called after finishing or error is occurred.
+ * Most part are borrowed from https://github.com/firebase/friendlypix and partly customized
  */
 public class NewPostUploadTaskFragment extends Fragment {
     private static final String TAG = "NewPostTaskFragment";
@@ -81,7 +82,7 @@ public class NewPostUploadTaskFragment extends Fragment {
     }
 
     /*
-        Called from FeedsActivity for uploading
+        Called from ListPostActivity for uploading
         It will call async task, UploadPostTask for uploading picture and set database
      */
     public void uploadPost(Bitmap bitmap, String inBitmapPath, Bitmap thumbnail,
@@ -94,7 +95,11 @@ public class NewPostUploadTaskFragment extends Fragment {
 
     /*
         Async task for uploading picture
-        After finishing, callback,onPostUploaded() will be called
+        After finishing, callback,onPostUploaded() will be called, which is at NewPostActivity(UI Thread)
+        AsyncTask enables proper and easy use of the UI thread.
+        This class allows to perform background operations and publish results on the UI thread
+        without having to manipulate threads and/or handlers.
+        https://developer.android.com/reference/android/os/AsyncTask.html
      */
     class UploadPostTask extends AsyncTask<Void, Void, Void> {
         private WeakReference<Bitmap> bitmapReference;
@@ -116,6 +121,12 @@ public class NewPostUploadTaskFragment extends Fragment {
         protected void onPreExecute() {
 
         }
+
+        /*
+            This method is for uploading picture at the firebase server's storage service folder
+            After uploading pictures(full, thumbnail), uri will be returned.
+            and the post data will be stored at the Firebase database services with including this uri
+         */
 
         @Override
         protected Void doInBackground(Void... params) {

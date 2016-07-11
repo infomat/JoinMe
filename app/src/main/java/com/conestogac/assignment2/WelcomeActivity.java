@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -18,9 +17,12 @@ import java.util.List;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
+/*
+    First screen for login or signup
+    If user already signin, by checking FirebaseAuth.getInstance(), it will login automatically
+ */
 public class WelcomeActivity extends AppCompatActivity implements
         View.OnClickListener,
         EasyPermissions.PermissionCallbacks {
@@ -88,7 +90,7 @@ public class WelcomeActivity extends AppCompatActivity implements
                                         Toast.LENGTH_SHORT).show();
                                 FirebaseUtil.setFullName(fullName);
                                 //To prevent user back to this activity by backkey
-                                Intent intent = new Intent(WelcomeActivity.this, FeedsActivity.class);
+                                Intent intent = new Intent(WelcomeActivity.this, ListPostActivity.class);
                                 startActivity(intent);
                                 finish();
                             }

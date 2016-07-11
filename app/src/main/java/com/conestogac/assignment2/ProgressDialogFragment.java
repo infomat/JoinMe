@@ -5,6 +5,10 @@ import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 
+/*
+    This class will be called from BaseActivity to display progress bar
+    To use this fragment, activity inherit BaseActivity and call showProgressDialog()
+ */
 public class ProgressDialogFragment extends DialogFragment {
     private static final String KEY_TITLE = "title";
 

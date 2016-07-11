@@ -1,42 +1,45 @@
 package com.conestogac.assignment2;
-
+import android.support.v4.app.Fragment;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.conestogac.assignment2.Model.Author;
 import com.conestogac.assignment2.Model.Post;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 
 /*
  * Fragment to display list of posts
+ * This fragment is defined at activity.list_post.xml
  */
-public class PostFragment extends Fragment {
+public class PostFragment extends Fragment
+    implements SetDistanceFragment.SetDistanceDialogListener{
 
     public static final String TAG = "PostFragment";
     public static final String LOCATION_EXTRA = "location";
     private static final String KEY_LAYOUT_POSITION = "layoutPosition";
+    private static int displayMode = 0;
 
     private int mRecyclerViewPosition = 0;
     private OnPostSelectedListener mListener;
@@ -44,13 +47,12 @@ public class PostFragment extends Fragment {
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter<PostViewHolder> mAdapter;
     private TextView mEmptyView;
-
     private Location curLocation;
+    private long distanceSetting;
 
     public PostFragment() {
         // Required empty public constructor
     }
-
 
     //depending on type, postfragment will be created
     public static PostFragment newInstance() {
@@ -72,6 +74,8 @@ public class PostFragment extends Fragment {
             throw new RuntimeException(context.toString()
                     + " must implement OnPostSelectedListener");
         }
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        distanceSetting = sharedPref.getInt(getString(R.string.saved_distance), 0);
     }
 
 
@@ -79,6 +83,7 @@ public class PostFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
+
 
     /*
         Inflate fragement view via layout fragment_post.xml which has recycler view
@@ -93,6 +98,9 @@ public class PostFragment extends Fragment {
         // Add view under rootView
         mRecyclerView = (RecyclerView) rootView.findViewById(R.id.my_recycler_view);
         mEmptyView = (TextView) rootView.findViewById(R.id.empty_list_item);
+
+        //To Process actionbar event
+        setHasOptionsMenu(true);
 
         return rootView;
     }
@@ -139,24 +147,20 @@ public class PostFragment extends Fragment {
             mRecyclerView.scrollToPosition(mRecyclerViewPosition);
         }
 
-        // Get current location
-        curLocation = FeedsActivity.currentLocation;
+        // Get current location to calculate distanceSetting
+        curLocation = ListPostActivity.currentLocation;
 
-
-        //Get all post
-        //Todo with settting all posts or preferred posts
+        //Get post
+        //Todo with setting, get all posts or preferred posts
         Log.d(TAG, "Restoring recycler view position (all): " + mRecyclerViewPosition);
-        Query allPostsQuery = FirebaseUtil.getPostsRef();
-        mAdapter = getFirebaseRecyclerAdapter(allPostsQuery);
 
-        //Set observer on onItemRangeInserted
-        mAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
-            @Override
-            public void onItemRangeInserted(int positionStart, int itemCount) {
-                super.onItemRangeInserted(positionStart, itemCount);
-            }
-        });
-        mRecyclerView.setAdapter(mAdapter);
+        showNew();
+
+        //Item Touch Helper for swiping
+        //https://developer.android.com/reference/android/support/v7/widget/helper/ItemTouchHelper.html
+        //Set callback as simpleCallbackItemTouchHelper and attach Recyle view
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallbackItemTouchHelper);
+        itemTouchHelper.attachToRecyclerView(mRecyclerView);
     }
 
     /*
@@ -188,6 +192,146 @@ public class PostFragment extends Fragment {
         Log.d(TAG, "Recycler view scroll position: " + recyclerViewScrollPosition);
         savedInstanceState.putSerializable(KEY_LAYOUT_POSITION, recyclerViewScrollPosition);
         super.onSaveInstanceState(savedInstanceState);
+    }
+
+    // This is called when the dialog is completed and the results have been passed
+    @Override
+    public void onFinishSetDistanceDialog(int distanceSetting) {
+        //update setting distance 
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(getString(R.string.saved_distance), distanceSetting);
+        editor.commit();
+        this.distanceSetting = distanceSetting;
+        getActivity().setTitle("Distance: "+ String.valueOf(distanceSetting) + "kms");
+        showNew();
+    }
+
+
+    /*
+        Show all when user select All menu on Actionbar
+    */
+    private void showAll() {
+        Query allPostsQuery = FirebaseUtil.getPostsRef();
+
+        mAdapter = getFirebaseRecyclerAdapter(allPostsQuery);
+        mAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                super.onItemRangeInserted(positionStart, itemCount);
+            }
+        });
+        mRecyclerView.setAdapter(mAdapter);
+    }
+
+    /*
+          Show according to distance filter
+      */
+    private void showNew() {
+        Query allPostsQuery = FirebaseUtil.getPostsRef();
+
+        allPostsQuery.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot likeSnapshot) {
+                float[] results = {0};
+                final List<String> postPaths = new ArrayList<String>();
+                for (DataSnapshot snapshot : likeSnapshot.getChildren()) {
+                    Log.d(TAG, "adding post key: " + snapshot.getKey());
+                    Log.d(TAG, "snapshot value: " +snapshot.getValue());
+
+                    Post post = snapshot.getValue(Post.class);
+                    //Calculate Distance
+                    Location.distanceBetween(Double.valueOf(post.getLocation().getlatitude()),
+                            Double.valueOf(post.getLocation().getlongitude()),
+                            curLocation.getLatitude(),
+                            curLocation.getLongitude(), results);
+
+                    if ((distanceSetting == 0)|| (results[0] <= distanceSetting * 1000))
+                        postPaths.add(snapshot.getKey());
+                }
+
+                //send list of liked post id to FirebasePostQueryAdapter
+                mAdapter = new FirebasePostQueryAdapter(postPaths, new FirebasePostQueryAdapter.OnSetupViewListener() {
+                    @Override
+                    public void onSetupView(PostViewHolder holder, Post post, int position, String postKey) {
+                        setupPost(holder, post, position, postKey);
+                    }
+                });
+                mRecyclerView.setAdapter(mAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+            }
+        });
+    }
+
+    /*
+        Show like when user select like menu on Actionbar
+        Todo: Set Observer on delete
+    */
+    private void showLike() {
+        final DatabaseReference postLikeRef = FirebaseUtil.getLikesRef();
+        //Only Likes
+        postLikeRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot likeSnapshot) {
+                final List<String> postPaths = new ArrayList<String>();
+                for (DataSnapshot snapshot : likeSnapshot.getChildren()) {
+                    Log.d(TAG, "adding post key: " + snapshot.getKey());
+                    Log.d(TAG, "snapshot value: " +snapshot.getValue());
+                    if (snapshot.getValue().toString().contains(FirebaseUtil.getCurrentUserId()))
+                        if (snapshot.getValue().toString().contains("=1"))
+                            //Calculate Distance
+                            postPaths.add(snapshot.getKey());
+                }
+
+                //send list of liked post id to FirebasePostQueryAdapter
+                mAdapter = new FirebasePostQueryAdapter(postPaths, new FirebasePostQueryAdapter.OnSetupViewListener() {
+                    @Override
+                    public void onSetupView(PostViewHolder holder, Post post, int position, String postKey) {
+                        setupPost(holder, post, position, postKey);
+                    }
+                });
+                mRecyclerView.setAdapter(mAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+            }
+        });
+    }
+
+    /*
+        Show like when user select dislike menu on Actionbar
+        Todo: Set Observer on delete
+    */
+    private void showDislike() {
+        final DatabaseReference postLikeRef = FirebaseUtil.getLikesRef();
+        //Only Likes
+        postLikeRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot likeSnapshot) {
+                final List<String> postPaths = new ArrayList<String>();
+                for (DataSnapshot snapshot : likeSnapshot.getChildren()) {
+                    Log.d(TAG, "adding post key: " + snapshot.getKey());
+                    Log.d(TAG, "snapshot value: " +snapshot.getValue());
+                    if (snapshot.getValue().toString().contains(FirebaseUtil.getCurrentUserId()))
+                        if (snapshot.getValue().toString().contains("=2"))
+                            postPaths.add(snapshot.getKey());
+                }
+
+                //send list of liked post id to FirebasePostQueryAdapter
+                mAdapter = new FirebasePostQueryAdapter(postPaths, new FirebasePostQueryAdapter.OnSetupViewListener() {
+                    @Override
+                    public void onSetupView(PostViewHolder holder, Post post, int position, String postKey) {
+                        setupPost(holder, post, position, postKey);
+                    }
+                });
+                mRecyclerView.setAdapter(mAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError firebaseError) {
+            }
+        });
     }
 
     /*
@@ -234,7 +378,7 @@ public class PostFragment extends Fragment {
                     Double.valueOf(post.getLocation().getlongitude()),
                     curLocation.getLatitude(),
                     curLocation.getLongitude(), results);
-            postViewHolder.setDistance(results[0]);
+            postViewHolder.setDistance((float)(results[0]/1000.0));
         } else {
             postViewHolder.setDistance(0);
         }
@@ -256,13 +400,27 @@ public class PostFragment extends Fragment {
         ValueEventListener likeListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                postViewHolder.setNumLikes(dataSnapshot.getChildrenCount());
+                int likesCount = 0;
+                for (DataSnapshot child : dataSnapshot.getChildren()) {
+                    if ((long) child.getValue() == 1) {
+                        likesCount++;
+                    }
+                }
+                postViewHolder.setNumLikes(likesCount);
 
                 //Todo User likes, none, dislikes
-                if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId())) {
-                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus.LIKED, getActivity());
+                //if current user has likes, then set likes
+                //if current user has dislikes then set dislikes
+                //else set none
+
+                if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId()) &&
+                        (long)dataSnapshot.child(FirebaseUtil.getCurrentUserId()).getValue() == 1) {
+                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_LIKED, getActivity());
+                } else if (dataSnapshot.hasChild(FirebaseUtil.getCurrentUserId()) &&
+                        (long)dataSnapshot.child(FirebaseUtil.getCurrentUserId()).getValue() == 2) {
+                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_NOTLIKED, getActivity());
                 } else {
-                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus.NOTLIKED, getActivity());
+                    postViewHolder.setLikeStatus(PostViewHolder.LikeStatus_NONE, getActivity());
                 }
             }
 
@@ -281,12 +439,10 @@ public class PostFragment extends Fragment {
             @Override
             public void toggleLike() {
                 Log.d(TAG, "Like position: " + position);
-                mListener.onPostLike(postKey);
+                mListener.onPostChangeLikeStatus(postKey);
             }
         });
     }
-
-
 
     private int getRecyclerViewScrollPosition() {
         int scrollPosition = 0;
@@ -297,6 +453,94 @@ public class PostFragment extends Fragment {
         }
         return scrollPosition;
     }
+
+    /*
+        ItemTouchHelper which is for processing Swiping event
+        https://developer.android.com/reference/android/support/v7/widget/helper/ItemTouchHelper.SimpleCallback.html
+        Simple wrapper to the default Callback with drag, swipe directions
+     */
+    ItemTouchHelper.SimpleCallback simpleCallbackItemTouchHelper = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT|ItemTouchHelper.RIGHT){
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            return true;
+        }
+
+        /*
+           Process Swiping event
+           With postion and direction, post key will be read at ViewHolder and handed to adapter to remove from recylerview
+           and also Handed event handler to change status of post
+         */
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+            int position = viewHolder.getAdapterPosition();
+            String keyToChange;
+
+            if (mAdapter instanceof FirebaseRecyclerAdapter) {
+                keyToChange = ((FirebaseRecyclerAdapter) mAdapter).getRef(position).getKey();
+            } else {
+                keyToChange = ((PostViewHolder)viewHolder).getPostKey();
+            }
+
+            //remove selected item from adapter when selected
+            ((FirebasePostQueryAdapter) mAdapter).removeItem(position);
+
+            if (direction == ItemTouchHelper.LEFT) {
+                Log.d(TAG, "Swipe LEFT  "+position);
+                mListener.onPostLike(keyToChange);
+            } else if (direction == ItemTouchHelper.RIGHT){
+                Log.d(TAG, "Swipe RIGHT "+position);
+                mListener.onPostDisLike(keyToChange);
+            }
+        }
+    };
+
+    /*
+        To process option menu selected event
+        To process at fragment, setHasOptionsMenu(true) should be set at CreateView()
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        switch (id) {
+            case R.id.action_show_all:
+                showMessage("Show New within Distance setting");
+                showNew();
+                break;
+
+            case R.id.action_show_dislike:
+                showMessage("Show what you set as Dislike regardless of Distance");
+                showDislike();
+                break;
+
+            case R.id.action_show_like:
+                showMessage("Show what you set as Like regardless of Distance");
+                showLike();
+                break;
+
+            case R.id.action_setting_distance:
+                setTargetFragment(this, 1);
+                SetDistanceFragment setDistanceFragment = SetDistanceFragment.newInstance("Set Distance");
+                // SETS the target fragment for use later when sending results
+                setDistanceFragment.setTargetFragment(PostFragment.this, 300);
+                setDistanceFragment.show(getActivity().getSupportFragmentManager(), "fragment_edit_name");
+
+                break;
+
+            default:
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showMessage(String msg) {
+        Toast.makeText(getActivity(), msg,
+                Toast.LENGTH_SHORT).show();
+    }
     /**
       This interface must be implemented by activities that contain this
       fragment to allow an interaction in this fragment to be communicated
@@ -304,7 +548,8 @@ public class PostFragment extends Fragment {
       activity.
      */
     public interface OnPostSelectedListener {
+        void onPostChangeLikeStatus(String postKey);
         void onPostLike(String postKey);
+        void onPostDisLike(String postKey);
     }
-
 }

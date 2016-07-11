@@ -181,7 +181,7 @@ public class LoginActivity extends AppCompatActivity implements
                                 //set fullname
                                 FirebaseUtil.setFullName(fullName);
                                 //To prevent user back to this activity by backkey
-                                Intent intent = new Intent(LoginActivity.this, FeedsActivity.class);
+                                Intent intent = new Intent(LoginActivity.this, ListPostActivity.class);
                                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                 startActivity(intent);
                                 finish();
@@ -230,7 +230,6 @@ public class LoginActivity extends AppCompatActivity implements
     /*
        Form validation
      */
-
     private boolean validateForm() {
         boolean isValid = true;
         // Reset errors.

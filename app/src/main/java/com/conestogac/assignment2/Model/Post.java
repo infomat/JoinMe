@@ -5,7 +5,8 @@ import android.location.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Created by infomat on 16-06-26.
+ * This calss is to manage information posted by author
+ * @param :author, full_url, thumb_storage_rui, thumb_url, text, timestamp, full_storage_uri, location
  */
 public class Post {
     private Author author;
