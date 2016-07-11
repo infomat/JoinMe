@@ -5,8 +5,8 @@ import android.os.Environment;
 import java.io.File;
 
 /**
- *
  * This class extends Abtract AlbumStorageDirFactory to support old version's DCIM folder
+ * AlbumStorageDirFactory, BaseAlbumDirFactory, FroyoAlbumDirFactory should used together
  */
 public final class BaseAlbumDirFactory extends AlbumStorageDirFactory {
 

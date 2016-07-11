@@ -5,9 +5,9 @@ import android.os.Environment;
 import java.io.File;
 
 /**
- * Created by infomat on 16-06-25.
  * This class extends Abtract AlbumSTorageDirFactory
  * which point to PICTURES folder
+ * AlbumStorageDirFactory, BaseAlbumDirFactory, FroyoAlbumDirFactory should used together
  */
 public final class FroyoAlbumDirFactory extends AlbumStorageDirFactory {
 

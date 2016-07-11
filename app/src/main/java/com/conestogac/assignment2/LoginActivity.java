@@ -230,7 +230,6 @@ public class LoginActivity extends AppCompatActivity implements
     /*
        Form validation
      */
-
     private boolean validateForm() {
         boolean isValid = true;
         // Reset errors.

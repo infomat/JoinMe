@@ -19,6 +19,10 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
+/*
+    First screen for login or signup
+    If user already signin, by checking FirebaseAuth.getInstance(), it will login automatically
+ */
 public class WelcomeActivity extends AppCompatActivity implements
         View.OnClickListener,
         EasyPermissions.PermissionCallbacks {

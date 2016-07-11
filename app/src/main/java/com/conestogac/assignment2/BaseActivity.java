@@ -4,6 +4,10 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 
+/*
+    This is wrapper class which will be used call the progress dialog
+    ProgressDialogFragment shoudl be used together
+ */
 public class BaseActivity extends AppCompatActivity {
     private static final String TAG_DIALOG_FRAGMENT = "tagDialogFragment";
 

@@ -24,7 +24,11 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.List;
 
-
+/*
+    This class is a activity for displaying list of posts
+    After user change the status of likeness, event will be handed through the interface
+    onPostLike(),onPostChangeLikeStatus(),onPostDisLike()
+ */
 public class ListPostActivity extends AppCompatActivity implements
         PostFragment.OnPostSelectedListener{
 
@@ -57,7 +61,6 @@ public class ListPostActivity extends AppCompatActivity implements
 
         //Set up GPS service
         myLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
         currentLocation = getLastKnownLocation();
 
         //Set add button Click listener
@@ -126,8 +129,8 @@ public class ListPostActivity extends AppCompatActivity implements
     /*
         This will be used when icon is selected
         State change None->Like->NotLike->None
-                //If data exists, it is like->dislike or notlike->None
-                //If data does not exist, it is none -> Like
+                If data exists, it is like->dislike or notlike->None
+                If data does not exist, it is none -> Like
      */
     @Override
     public void onPostChangeLikeStatus(final String postKey) {
@@ -215,6 +218,9 @@ public class ListPostActivity extends AppCompatActivity implements
         });
     }
 
+    /*
+        To Inflate option menu
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -249,7 +255,9 @@ public class ListPostActivity extends AppCompatActivity implements
     }
 
 
-    //Get last Known location to get location faster
+    /*
+        Get last Known location to get location faster
+     */
     private Location getLastKnownLocation() {
         myLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         List<String> providers = myLocationManager.getProviders(true);

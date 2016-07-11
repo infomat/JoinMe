@@ -1,7 +1,8 @@
 package com.conestogac.assignment2.Model;
 
 /**
- * Created by infomat on 16-06-29.
+ * This class is to manage location information of user or uploaded post's GPS location
+ * @param : logitude, latitude
  */
 public class Loc {
     private String longitude;

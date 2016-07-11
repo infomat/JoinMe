@@ -1,7 +1,8 @@
 package com.conestogac.assignment2.Model;
 
 /**
- * Created by infomat on 16-06-26.
+ * This class is to manage user information
+ * @param : email, password, fullname, userid
  */
 public class Author {
     private String fullname;

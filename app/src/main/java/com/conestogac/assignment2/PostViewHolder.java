@@ -81,10 +81,17 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         });
     }
 
+    /*
+      Set url of photo to be displayed. Glide libaray will make fetch image at background and
+      display at mphotoView imageview automatically
+     */
     public void setPhoto(String url) {
         GlideUtil.loadImage(url, mPhotoView);
     }
 
+    /*
+    Set Author information
+     */
     public void setAuthor(String author) {
         if (author == null || author.isEmpty()) {
             author = mView.getResources().getString(R.string.user_info_no_name);
@@ -92,6 +99,9 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         mAuthorView.setText(author);
     }
 
+    /*
+       Set text view
+     */
     public void setText(final String text) {
         if (text == null || text.isEmpty()) {
             mPostTextView.setVisibility(View.GONE);
@@ -112,6 +122,10 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
             });
         }
     }
+
+    /*
+     Show user's email at tool-tip
+     */
 
     private void showUserDetail(View view, String authorEmail) {
         Context context = mView.getContext();
@@ -137,15 +151,24 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         Log.d(TAG, "Author email: "+authorEmail);
     }
 
+    /*
+        Set time stamp
+     */
     public void setTimestamp(String timestamp) {
         mTimestampView.setText(timestamp);
     }
 
+    /*
+        Set number of likes
+     */
     public void setNumLikes(long numLikes) {
         String suffix = numLikes == 1 ? " like" : " likes";
         mNumLikesView.setText(numLikes + suffix);
     }
 
+    /*
+      calculate distance based on current uses's GPS coordinate and author's coordinate
+     */
     public void setDistance(float distance) {
         String prefix = "Distance: ";
         String suffix = " km";
@@ -158,6 +181,9 @@ public class PostViewHolder extends RecyclerView.ViewHolder {
         mListener = listener;
     }
 
+    /*
+        Set change likeness drawable according to status
+     */
     public void setLikeStatus(int status, Context context) {
         int image;
         if (status == LikeStatus_LIKED) {

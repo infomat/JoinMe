@@ -1,6 +1,5 @@
 package com.conestogac.assignment2;
 import android.support.v4.app.Fragment;
-import android.app.FragmentManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.location.Location;
@@ -32,6 +31,7 @@ import java.util.List;
 
 /*
  * Fragment to display list of posts
+ * This fragment is defined at activity.list_post.xml
  */
 public class PostFragment extends Fragment
     implements SetDistanceFragment.SetDistanceDialogListener{
@@ -83,6 +83,7 @@ public class PostFragment extends Fragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
+
 
     /*
         Inflate fragement view via layout fragment_post.xml which has recycler view
@@ -454,6 +455,7 @@ public class PostFragment extends Fragment
     }
 
     /*
+        ItemTouchHelper which is for processing Swiping event
         https://developer.android.com/reference/android/support/v7/widget/helper/ItemTouchHelper.SimpleCallback.html
         Simple wrapper to the default Callback with drag, swipe directions
      */
@@ -464,7 +466,11 @@ public class PostFragment extends Fragment
             return true;
         }
 
-
+        /*
+           Process Swiping event
+           With postion and direction, post key will be read at ViewHolder and handed to adapter to remove from recylerview
+           and also Handed event handler to change status of post
+         */
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
             int position = viewHolder.getAdapterPosition();
@@ -489,6 +495,10 @@ public class PostFragment extends Fragment
         }
     };
 
+    /*
+        To process option menu selected event
+        To process at fragment, setHasOptionsMenu(true) should be set at CreateView()
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
